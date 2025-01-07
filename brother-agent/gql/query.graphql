@@ -1,0 +1,22 @@
+query GetPools($first: Int!, $tokenAddresses: [String!]) {
+  poolsData(
+    first: $first
+    where: { bothTokenAddressIn: $tokenAddresses }
+  ) {
+    pool {
+      poolAddress
+      token0 {
+        tokenAddress
+        symbol
+      }
+      token1 {
+        tokenAddress
+        symbol  
+      }
+      volumeUSD
+      totalValueLockedUSD
+      fee
+    }
+    period
+  }
+}

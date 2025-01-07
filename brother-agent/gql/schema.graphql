@@ -1,0 +1,60 @@
+type Token {
+  tokenAddress: String!
+  name: String!
+  symbol: String!
+  derivedETH: Float
+  volume: Float
+  volumeUSD: Float
+  untrackedVolumeUSD: Float
+  totalValueLocked: Float
+  totalValueLockedUSD: Float
+  txCount: Int
+  feesUSD: Float
+}
+
+type Pool {
+  poolAddress: String!
+  token0: Token!
+  token1: Token!
+  volumeToken0: Float
+  volumeToken1: Float
+  volumeUSD: Float
+  totalValueLockedUSD: Float
+  totalValueLockedETH: Float
+  totalValueLockedToken0: Float
+  totalValueLockedToken1: Float
+  token0Price: Float
+  token1Price: Float
+  fee: Int
+}
+
+type Query {
+  tokensData(first: Int, where: TokenWhereInput): [TokenData!]!
+  poolsData(first: Int, where: PoolWhereInput): [PoolData!]!
+  factoriesData: FactoryData!
+  strkGrantDataV2: String!
+}
+
+type TokenData {
+  token: Token!
+  period: String!
+}
+
+type PoolData {
+  pool: Pool!
+  period: String!
+}
+
+type FactoryData {
+  oneDay: String!
+  twoDays: String!
+}
+
+input TokenWhereInput {
+  tokenAddressIn: [String!]
+}
+
+input PoolWhereInput {
+  periodIn: [String!]
+  bothTokenAddressIn: [String!]
+}
