@@ -4,6 +4,6 @@ use graphql_client::GraphQLQuery;
 #[graphql(
     schema_path = "gql/schema.graphql",
     query_path = "gql/query.graphql",
-    response_derives = "Debug"
+    response_derives = "Debug, PartialEq"
 )]
 pub struct GetPools;
