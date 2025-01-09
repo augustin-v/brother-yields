@@ -7,7 +7,6 @@ pub trait IBrotherConvert<TContractState> {
     fn get_brother(self: @TContractState) -> felt252;
 }
 
-/// Simple contract for managing balance.
 #[starknet::contract]
 mod HelloStarknet {
     use core::starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
