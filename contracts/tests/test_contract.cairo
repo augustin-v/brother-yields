@@ -31,7 +31,7 @@ fn test_get_brother() {
     let dispatcher = IBrotherConvertDispatcher { contract_address };
     
     let brother = dispatcher.get_brother();
-    assert(brother == 'Brother', 'Invalid brother value');
+    assert(brother == 'Brother', 'No brother. tragic');
 }
 
 #[test]
