@@ -35,6 +35,8 @@ impl CoinMarketData {
         dbg!(usdc_total_supply);
         let usdc_scaled = (usdc_total_supply as f64) / 10_f64.powf(6.0); // Starknet USDC has 6 Decimals https://voyager.online/token/0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8#readFunctions
 
+        let usdc_scaled = (usdc_total_supply as f64) / 10_f64.powf(6.0); // Starknet USDC has 6 Decimals https://voyager.online/token/0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8#readFunctions
+
         let decimals = 18.0; // ERC-20 Token by default use a value of 18 for decimals https://docs.openzeppelin.com/contracts/3.x/erc20#:~:text=By%20default%2C%20ERC20%20uses%20a%20value%20of%2018%20for%20decimals%20.
         let mut reserve_a: u128;
         let mut scaled_reserve_a: f64;
@@ -46,9 +48,8 @@ impl CoinMarketData {
                     .await
                     .try_into()
                     .expect("Failed converting felt usize");
-                dbg!(reserve_a);
+
                 scaled_reserve_a = (reserve_a as f64) / 10_f64.powf(decimals);
-                dbg!(scaled_reserve_a);
             }
             "ETH" => {
                 let contract_address =
@@ -58,8 +59,8 @@ impl CoinMarketData {
                     .try_into()
                     .expect("Failed converting felt to usize");
                 scaled_reserve_a = (reserve_a as f64) / 10_f64.powf(decimals);
-                dbg!(reserve_a);
-                dbg!(scaled_reserve_a);
+
+
             }
             "BROTHER" => {
                 let contract_address =
@@ -69,9 +70,9 @@ impl CoinMarketData {
                     .try_into()
                     .expect("Failed converting felt usize");
                 println!("brother supply: {reserve_a}");
-                dbg!(reserve_a);
+
                 scaled_reserve_a = (reserve_a as f64) / 10_f64.powf(decimals);
-                dbg!(scaled_reserve_a);
+
             }
             _ => panic!("Token name didnt match supported addresses: see `tokens.rs`"),
         }
