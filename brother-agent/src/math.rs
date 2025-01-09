@@ -3,7 +3,6 @@ use crate::{
 };
 use std::collections::HashMap;
 
-
 pub const STARKNET_TVL_ESTIMATE: f64 = 231984602.0;
 pub struct DefiSpringData {
     pub current_apr: f64,

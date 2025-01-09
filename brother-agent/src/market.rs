@@ -1,8 +1,8 @@
 use crate::math::{calculate_risk_score, STARKNET_TVL_ESTIMATE};
 use crate::tokens::{fetch_token_reserve, fetch_usdc_reserve};
 use crate::types::ComputeError;
+use starknet::core::types::Felt;
 use starknet::macros::felt;
-
 
 #[derive(Debug)]
 pub struct CoinMarketData {
@@ -22,13 +22,18 @@ pub struct CoinMarketData {
 }
 
 impl CoinMarketData {
-    pub async fn from_gecko_data(token_name: &str, price: f64, volume_24h: f64, price_change_24h: f64) -> CoinMarketData {
+    pub async fn from_gecko_data(
+        token_name: &str,
+        price: f64,
+        volume_24h: f64,
+        price_change_24h: f64,
+    ) -> CoinMarketData {
         let usdc_total_supply: usize = fetch_usdc_reserve()
             .await
             .try_into()
             .expect("Error converting Felt to usize");
 
-        let mut reserve_a: usize;
+        let mut reserve_a: u128;
 
         match token_name {
             "STRK" => {
@@ -38,6 +43,7 @@ impl CoinMarketData {
                     .await
                     .try_into()
                     .expect("Failed converting felt usize");
+                println!("strk supply: {reserve_a}");
             }
             "ETH" => {
                 let contract_address =
@@ -46,19 +52,21 @@ impl CoinMarketData {
                     .await
                     .try_into()
                     .expect("Failed converting felt to usize");
+                println!("eth supply: {reserve_a}");
             }
             "BROTHER" => {
                 let contract_address =
-                    felt!("0x03b405a98c9e795d427fe82cdeeeed803f221b52471e3a757574a2b4180793ee");
+                    felt!("0x3b405a98c9e795d427fe82cdeeeed803f221b52471e3a757574a2b4180793ee");
                 reserve_a = fetch_token_reserve(contract_address)
                     .await
                     .try_into()
                     .expect("Failed converting felt usize");
+                println!("brother supply: {reserve_a}");
             }
             _ => panic!("Token name didnt match supported addresses: see `tokens.rs`"),
         }
 
-        let mut res = CoinMarketData { 
+        let mut res = CoinMarketData {
             price,
             reserve_a: reserve_a as f64,
             reserve_b: usdc_total_supply as f64,
@@ -67,11 +75,11 @@ impl CoinMarketData {
             liquidity: 0.0, //default
             tvl: STARKNET_TVL_ESTIMATE,
             apy: 0.0,
-            risk_score: 0.0
+            risk_score: 0.0,
         };
-            res.calculate_metrics().expect("error computing metrics");
+        res.calculate_metrics().expect("error computing metrics");
 
-            res
+        res
     }
 
     pub fn calculate_metrics(&mut self) -> Result<(), ComputeError> {

@@ -7,16 +7,19 @@ use rig::{completion::Prompt, loaders::FileLoader, tool::Tool};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use starknet::macros::felt;
 use tokens::fetch_all_tokens;
 use types::{PortfolioError, StringContractAddress, Token};
+use utils::call_felt_2_usize_contract;
 
 mod market;
 mod math;
 mod query;
 mod tokens;
 mod types;
+mod utils;
 
-#[derive(Deserialize, Serialize, JsonSchema, Default)]
+#[derive(Deserialize, Serialize, JsonSchema, Default, Debug)]
 struct ProtocolYield {
     token: Token,
     apy: f64,
@@ -48,13 +51,27 @@ impl YieldAnalyzer {
     async fn get_yields_data() -> Result<Vec<ProtocolYield>, Error> {
         // TODO: call fetch_all_tokens -> compute the apy etc based on that -> store it in the protocol yield
         let (tokens, market_data) = fetch_all_tokens().await;
+        println!(
+            "ALL FETCHED TOKENS: {:?}, MARKET DATA {:?}",
+            tokens, market_data
+        );
+        let mut res: Vec<ProtocolYield> = Vec::with_capacity(tokens.len());
         for (token, market) in tokens.iter().zip(market_data.iter()) {
-            println!("Token {} has price ${} and 24h volume ${}", 
-                token.name, 
-                market.price, 
-                market.volume_24h);
+            println!(
+                "Token {} has price ${} and 24h volume ${}",
+                token.name, market.price, market.volume_24h
+            );
+
+            let temp_proto_yield = ProtocolYield {
+                token: token.clone(),
+                apy: market.apy,
+                tvl: market.tvl,
+                risk_score: market.risk_score,
+            };
+            res.push(temp_proto_yield);
         }
-        Ok(vec![ProtocolYield::default()]).map_err(|e| Error::context(e, "err"))
+
+        Ok(res).map_err(|e| Error::context(e, "err"))
     }
 }
 
@@ -97,27 +114,29 @@ impl YieldAnalyzer {
 #[tokio::main]
 async fn main() {
     dotenv().expect("failed to load .env");
-//    let openai_client = openai::Client::from_env();
-    
-    
-    
-    
-    YieldAnalyzer::get_yields_data().await;
 
+    let all_data = YieldAnalyzer::get_yields_data().await.expect("no data");
+    for data in all_data {
+        println!("data: {:?}", data);
+    }
+    //let fel = felt!("123");
+    //let res = call_felt_2_usize_contract(fel).await.expect("Failed to convert to usize");
+    //s
+    //println!("res: {:?}",res);
 
+    //    let openai_client = openai::Client::from_env();
 
-
-//    let yield_agent = openai_client
-//        .agent(openai::GPT_4O)
-//        .preamble("You are YieldAI, an expert DeFi yield optimization assistant on Starknet.")
-//        .tool(YieldAnalyzer {
-//            portfolio_data: vec![],
-//        })
-//        .build();
-//
-//    let result = yield_agent
-//        .prompt("Are you doing good?")
-//        .await
-//        .expect("Failed prompting gpt");
-//    println!("gpt: {}", result);
+    //    let yield_agent = openai_client
+    //        .agent(openai::GPT_4O)
+    //        .preamble("You are YieldAI, an expert DeFi yield optimization assistant on Starknet.")
+    //        .tool(YieldAnalyzer {
+    //            portfolio_data: vec![],
+    //        })
+    //        .build();
+    //
+    //    let result = yield_agent
+    //        .prompt("Are you doing good?")
+    //        .await
+    //        .expect("Failed prompting gpt");
+    //    println!("gpt: {}", result);
 }

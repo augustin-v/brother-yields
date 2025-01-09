@@ -1,5 +1,5 @@
-use crate::{market::CoinMarketData, types::Token};
 use crate::StringContractAddress;
+use crate::{market::CoinMarketData, types::Token};
 use starknet::{
     core::types::{BlockId, BlockTag, Felt, FunctionCall},
     macros::{felt, selector},
@@ -19,7 +19,7 @@ const USDC: &str = "0x53c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf
 // chain id on coingecko
 const CHAIN_ID: &str = "starknet";
 
-/// hashmap<name_of_token, Token(the token info)>
+// vec1[x] related to vec2[x] and so on (vec2[x] countains Market Data about vec1[x])
 pub async fn fetch_all_tokens() -> (Vec<Token>, Vec<CoinMarketData>) {
     let api_key = std::env::var("COINGECKO_API_KEY").expect("COINGECKO_API_KEY not set");
     let mut tokens = Vec::new();
@@ -46,7 +46,7 @@ pub async fn fetch_all_tokens() -> (Vec<Token>, Vec<CoinMarketData>) {
                 let price = data.get("usd").copied().unwrap_or_default();
                 let volume_24h = data.get("usd_24h_vol").copied().unwrap_or_default();
                 let price_change_24h = data.get("usd_24h_change").copied().unwrap_or_default();
-                
+
                 let token_name = match address.as_str() {
                     addr if addr == BROTHER => "BROTHER",
                     addr if addr == STRK => "STRK",
@@ -66,35 +66,15 @@ pub async fn fetch_all_tokens() -> (Vec<Token>, Vec<CoinMarketData>) {
                     token_name,
                     price,
                     volume_24h,
-                    price_change_24h
-                ).await;
-                
+                    price_change_24h,
+                )
+                .await;
+
                 market_data.push(market_data_entry);
             }
         }
     }
-
     (tokens, market_data)
-}
-
-
-
-// helper
-pub fn extract_token_info(tokens_info: HashMap<String, Token>) -> Vec<Token> {
-    let strk = tokens_info
-        .get("STRK")
-        .expect("Couldnt extract STRK token")
-        .clone();
-    let brother = tokens_info
-        .get("BROTHER")
-        .expect("Couldnt extract BROTHER token")
-        .clone();
-    let eth = tokens_info
-        .get("ETH")
-        .expect("Couldnt extract ETH token")
-        .clone();
-
-    vec![strk, brother, eth]
 }
 
 pub async fn fetch_token_reserve(contract_address: Felt) -> Felt {
