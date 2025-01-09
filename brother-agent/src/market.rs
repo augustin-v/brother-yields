@@ -1,7 +1,7 @@
 use crate::math::{calculate_risk_score, STARKNET_TVL_ESTIMATE};
 use crate::tokens::{fetch_token_reserve, fetch_usdc_reserve};
 use crate::types::ComputeError;
-use starknet::core::types::Felt;
+
 use starknet::macros::felt;
 
 #[derive(Debug)]

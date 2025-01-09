@@ -14,7 +14,6 @@ use utils::call_felt_2_usize_contract;
 
 mod market;
 mod math;
-mod query;
 mod tokens;
 mod types;
 mod utils;
