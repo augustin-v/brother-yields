@@ -32,8 +32,6 @@ impl CoinMarketData {
             .await
             .try_into()
             .expect("Error converting Felt to usize");
-        dbg!(usdc_total_supply);
-        let usdc_scaled = (usdc_total_supply as f64) / 10_f64.powf(6.0); // Starknet USDC has 6 Decimals https://voyager.online/token/0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8#readFunctions
 
         let usdc_scaled = (usdc_total_supply as f64) / 10_f64.powf(6.0); // Starknet USDC has 6 Decimals https://voyager.online/token/0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8#readFunctions
 
