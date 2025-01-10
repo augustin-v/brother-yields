@@ -1,11 +1,13 @@
+use anyhow::{Context, Error};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, convert::From, fmt::Debug};
-use rig::{agent::Agent, completion::CompletionModel};
-
+use std::{collections::HashMap, convert::From, fmt::Debug, path::Path};
+use rig::{agent::Agent, completion::{CompletionModel, Prompt}};
+use std::sync::Arc;
+use std::fs;
 
 pub struct BrotherAgent<M: CompletionModel> {
-    pub agent: Agent<M>,
+    pub agent: Arc<Agent<M>>,
     pub job: AgentRole,
 }
 
@@ -19,9 +21,18 @@ impl<M: CompletionModel> BrotherAgent<M> {
 
     pub fn from(agent: Agent<M>, job: AgentRole) -> Self {
         Self {
-            agent,
+            agent: Arc::new(agent),
             job
         }
+    }
+
+    pub async fn proccess_message(&self, message: &str) -> Result<String, Error> {
+        self.agent.prompt(message).await.map_err(anyhow::Error::from)
+    }
+
+    pub fn load_md_content<P: AsRef<Path> +Debug>(file_path: P) -> Result<String, Error> {
+        fs::read_to_string(file_path.as_ref())
+            .with_context(|| format!("Failed to read markdown file: {:?}", file_path))
     }
 }
 
@@ -36,7 +47,7 @@ pub enum AgentRole {
 #[error("Portfolio error: {0}")]
 pub struct PortfolioError(pub String);
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
 pub struct Asset {
     pub token: StringContractAddress,
     #[serde(rename = "balanceUSD")]
@@ -84,3 +95,23 @@ pub enum ComputeError {
     MissingLiquidity,
 }
 
+#[derive(Deserialize, Serialize, JsonSchema, Default, Debug)]
+pub struct ProtocolYield {
+    pub token: Token,
+    pub apy: f64,
+    pub tvl: f64,
+    pub risk_score: f64,
+}
+
+#[derive(Deserialize, Serialize, JsonSchema)]
+pub struct Portfolio {
+    wallet_address: StringContractAddress,
+    assets: Vec<Asset>,
+    total_value: f64,
+}
+
+#[derive(Deserialize, Serialize, JsonSchema)]
+pub struct YieldAnalyzer {
+    pub portfolio_data: Vec<Asset>,
+    pub yields_data: Vec<ProtocolYield>,
+}

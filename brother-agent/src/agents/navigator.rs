@@ -12,8 +12,8 @@ use rig::{
 const ROLE: AgentRole = AgentRole::Navigator;
 
 pub async fn launch() -> Result<(), Error> {
-    let agent = BrotherAgent::from(agent_build().await.expect("Error building navigator agent"), ROLE);
-
+    let nav_agent = BrotherAgent::from(agent_build().await.expect("Error building navigator agent"), ROLE);
+    println!("GOOD");
 
     Ok(())
 }
