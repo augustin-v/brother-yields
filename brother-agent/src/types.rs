@@ -1,6 +1,36 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, convert::From};
+use std::{collections::HashMap, convert::From, fmt::Debug};
+use rig::{agent::Agent, completion::CompletionModel};
+
+
+pub struct BrotherAgent<M: CompletionModel> {
+    pub agent: Agent<M>,
+    pub job: AgentRole,
+}
+
+impl<M: CompletionModel> BrotherAgent<M> {
+    pub fn new(self, job: AgentRole) -> Self {
+        Self {
+            agent: self.agent,
+            job
+        }
+    }
+
+    pub fn from(agent: Agent<M>, job: AgentRole) -> Self {
+        Self {
+            agent,
+            job
+        }
+    }
+}
+
+/// Agents have distinct roles
+#[derive(Debug)]
+pub enum AgentRole {
+    Navigator,
+    Analyzer,
+}
 
 #[derive(Debug, thiserror::Error)]
 #[error("Portfolio error: {0}")]
@@ -53,3 +83,4 @@ pub enum ComputeError {
     #[error("Missing liquidity data")]
     MissingLiquidity,
 }
+

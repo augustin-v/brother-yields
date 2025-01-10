@@ -59,8 +59,6 @@ impl CoinMarketData {
                     .try_into()
                     .expect("Failed converting felt to usize");
                 scaled_reserve_a = (reserve_a as f64) / 10_f64.powf(decimals);
-
-
             }
             "BROTHER" => {
                 let contract_address =
@@ -72,7 +70,6 @@ impl CoinMarketData {
                 println!("brother supply: {reserve_a}");
 
                 scaled_reserve_a = (reserve_a as f64) / 10_f64.powf(decimals);
-
             }
             _ => panic!("Token name didnt match supported addresses: see `tokens.rs`"),
         }
@@ -94,7 +91,6 @@ impl CoinMarketData {
     }
 
     pub fn calculate_metrics(&mut self) -> Result<(), ComputeError> {
-
         dbg!(self.reserve_a, self.reserve_b, self.price, self.volume_24h);
 
         self.liquidity = 2.0 * (self.reserve_a * self.reserve_b).sqrt();

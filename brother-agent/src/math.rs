@@ -1,6 +1,3 @@
-
-
-
 pub const STARKNET_TVL_ESTIMATE: f64 = 231984602.0;
 
 pub fn calculate_risk_score(tvl: f64, volume_24h: f64, price_change_24h: f64) -> f64 {
