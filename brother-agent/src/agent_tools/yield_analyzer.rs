@@ -1,6 +1,6 @@
-use crate::types::{YieldAnalyzer, ProtocolYield};
-use anyhow::{Ok, Error};
 use crate::fetch_all_tokens;
+use crate::types::{ProtocolYield, YieldAnalyzer};
+use anyhow::{Error, Ok};
 
 impl YieldAnalyzer {
     /// supported for now: "STRK", "BROTHER", "ETH"; {token}/USDC pairs

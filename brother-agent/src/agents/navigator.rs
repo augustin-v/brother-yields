@@ -1,24 +1,27 @@
-use std::env;
 use crate::types::{AgentRole, BrotherAgent};
 use anyhow::Error;
 use rig::{
-    agent::{AgentBuilder, Agent},
+    agent::{Agent, AgentBuilder},
     completion::Prompt,
     loaders::FileLoader,
     providers::openai::{self, CompletionModel, GPT_4O},
 };
+use std::env;
 
 /// Role of the agentg
 const ROLE: AgentRole = AgentRole::Navigator;
 
 pub async fn launch() -> Result<(), Error> {
-    let nav_agent = BrotherAgent::from(agent_build().await.expect("Error building navigator agent"), ROLE);
+    let nav_agent = BrotherAgent::from(
+        agent_build().await.expect("Error building navigator agent"),
+        ROLE,
+    );
     println!("GOOD");
 
     Ok(())
 }
 
-async fn agent_build () -> Result<Agent<CompletionModel>, anyhow::Error> {
+async fn agent_build() -> Result<Agent<CompletionModel>, anyhow::Error> {
     let openai_client =
         openai::Client::new(&env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY not set"));
 
@@ -38,11 +41,11 @@ async fn agent_build () -> Result<Agent<CompletionModel>, anyhow::Error> {
         .build();
 
     // Prompt the agent and print the response
-//    let response = agent
-//        .prompt("Which rust example is best suited for the operation 1 + 2")
-//        .await?;
+    //    let response = agent
+    //        .prompt("Which rust example is best suited for the operation 1 + 2")
+    //        .await?;
 
-//    println!("{}", response);
+    //    println!("{}", response);
 
     Ok(agent)
 }

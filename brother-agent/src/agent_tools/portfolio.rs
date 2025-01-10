@@ -1,6 +1,6 @@
-use rig::tool::Tool;
-use crate::types::{YieldAnalyzer, PortfolioError, ProtocolYield, Portfolio};
 use crate::json;
+use crate::types::{Portfolio, PortfolioError, ProtocolYield, YieldAnalyzer};
+use rig::tool::Tool;
 
 impl Tool for YieldAnalyzer {
     const NAME: &'static str = "analyze_yield";
