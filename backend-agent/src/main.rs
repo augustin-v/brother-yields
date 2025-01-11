@@ -8,6 +8,7 @@ use rig::{completion::Prompt, loaders::FileLoader, tool::Tool};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use start::{ProviderConfig, Start};
 use std::sync::atomic::Ordering;
 use tokens::fetch_all_tokens;
 use tokio::time::Duration;
@@ -20,6 +21,7 @@ mod agents;
 mod backend;
 mod market;
 mod math;
+mod start;
 mod tokens;
 mod types;
 mod utils;
@@ -28,8 +30,12 @@ mod utils;
 async fn main() {
     tracing_subscriber::fmt().init();
     dotenv().expect("failed to load .env");
-    let backend = Backend::new();
+    let apis = Start::check_env().expect("Error getting api keys");
+    
+    type M = rig::providers::openai::CompletionModel;
+    let backend = Backend::<M>::new(apis.provider, apis.coingecko);
     let server_task = tokio::spawn(async move {backend.start().await.expect("didnt start")});
+    
     tokio::time::sleep(Duration::from_millis(100)).await;
 
     // Fetch market data  Compute into yields data: apy, risk score etc...
