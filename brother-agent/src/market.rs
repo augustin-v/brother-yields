@@ -45,7 +45,7 @@ impl CoinMarketData {
                 reserve_a = fetch_token_reserve(contract_address)
                     .await
                     .try_into()
-                    .expect("Failed converting felt usize");
+                    .expect("Failed converting felt u128");
 
                 scaled_reserve_a = (reserve_a as f64) / 10_f64.powf(decimals);
             }
@@ -55,7 +55,7 @@ impl CoinMarketData {
                 reserve_a = fetch_token_reserve(contract_address)
                     .await
                     .try_into()
-                    .expect("Failed converting felt to usize");
+                    .expect("Failed converting felt to u128");
                 scaled_reserve_a = (reserve_a as f64) / 10_f64.powf(decimals);
             }
             "BROTHER" => {
@@ -64,7 +64,7 @@ impl CoinMarketData {
                 reserve_a = fetch_token_reserve(contract_address)
                     .await
                     .try_into()
-                    .expect("Failed converting felt usize");
+                    .expect("Failed converting felt u128");
                 println!("brother supply: {reserve_a}");
 
                 scaled_reserve_a = (reserve_a as f64) / 10_f64.powf(decimals);
