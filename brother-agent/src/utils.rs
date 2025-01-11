@@ -13,7 +13,7 @@ use starknet::{
     signers::{LocalWallet, SigningKey},
 };
 
-pub async fn call_felt_2_usize_contract(
+pub async fn _call_felt_2_usize_contract(
     value: Felt,
 ) -> anyhow::Result<InvokeTransactionResult, Error> {
     let sepolia_api_key =

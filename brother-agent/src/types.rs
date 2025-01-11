@@ -1,13 +1,6 @@
-use anyhow::{Context, Error};
-use rig::{
-    agent::Agent,
-    completion::{CompletionModel, Prompt},
-};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::fs;
-use std::sync::Arc;
-use std::{collections::HashMap, convert::From, fmt::Debug, path::Path};
+use std::{collections::HashMap, convert::From, fmt::Debug};
 
 #[derive(Debug, thiserror::Error)]
 #[error("Portfolio error: {0}")]
@@ -51,14 +44,14 @@ impl From<HashMap<String, Token>> for Token {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ComputeError {
-    #[error("Missing price data for token")]
-    MissingPrice,
-    #[error("Pool TVL too low")]
-    LowTVL,
+//    #[error("Missing price data for token")]
+//    MissingPrice,
+//    #[error("Pool TVL too low")]
+//    LowTVL,
     #[error("Invalid pool data")]
     InvalidPool,
-    #[error("Missing liquidity data")]
-    MissingLiquidity,
+//  #[error("Missing liquidity data")]
+//    MissingLiquidity,
 }
 
 #[derive(Deserialize, Serialize, JsonSchema, Default, Debug)]

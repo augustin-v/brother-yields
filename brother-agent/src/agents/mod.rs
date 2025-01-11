@@ -6,8 +6,6 @@ use rig::{
     completion:: Prompt,
     providers::openai::CompletionModel
 };
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
 use std::fs;
 use std::sync::Arc;
 use std::{ convert::From, fmt::Debug, path::Path};

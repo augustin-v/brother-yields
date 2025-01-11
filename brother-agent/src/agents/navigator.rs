@@ -3,7 +3,6 @@ use anyhow::Error;
 use rig::{
     agent::{Agent, AgentBuilder}, loaders::FileLoader, providers::openai::{self, CompletionModel, GPT_4O}
 };
-use std::env;
 
 pub async fn launch(backend: &Backend) -> Result<(), Error> {
     let nav_agent = backend.agent_state.clone().expect("No agent available").navigator;
@@ -13,9 +12,9 @@ pub async fn launch(backend: &Backend) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn agent_build() -> Result<Agent<CompletionModel>, anyhow::Error> {
+pub async fn agent_build(api_key: String) -> Result<Agent<CompletionModel>, anyhow::Error> {
     let openai_client =
-        openai::Client::new(&env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY not set"));
+        openai::Client::new(&api_key);
 
     let model = openai_client.completion_model(GPT_4O);
 
@@ -29,8 +28,8 @@ pub async fn agent_build() -> Result<Agent<CompletionModel>, anyhow::Error> {
     let agent = examples
         .fold(AgentBuilder::new(model), |builder, (path, content)| {
             builder.context(format!("Rust Example {:?}:\n{}", path, content).as_str())
-        }).preamble("You are a navigator in the Brother Yield project, made for assisting the user with DeFi strategy optimization on Starknet. You are the mastermind with all the tools. Use them wisely to meet the user's expectations. Do not answer requests unrelated to Starknet or DeFi strategies on Starknet under ANY circumstance.")
+        }).preamble("You are a navigator in the Brother Yield project, made for assisting the user with DeFi strategy optimization on Starknet. You are the mastermind with all the tools. Use them wisely to meet the user's expectations. Do not answer requests unrelated to Starknet or DeFi strategies on Starknet under ANY circumstance. Keep your answer concise, no hyperbole allowed.")
         .build();
-    
+
     Ok(agent)
 }

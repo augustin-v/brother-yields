@@ -3,7 +3,7 @@ use axum::{http::StatusCode, routing::post, Json, Router};
 use axum::extract::State;
 use axum;
 use parking_lot::RwLock;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
@@ -36,9 +36,9 @@ impl Backend {
         }
     }
 
-    pub async fn start(mut self, api: String) -> Result<(), anyhow::Error> {
+    pub async fn start(mut self, api_key: String) -> Result<(), anyhow::Error> {
         self.agent_state = Some(AgentState{
-            navigator:  Arc::new(Mutex::new(BrotherAgent::from(navigator::agent_build().await.expect("Failed building agent"), crate::agents::AgentRole::Navigator))),
+            navigator:  Arc::new(Mutex::new(BrotherAgent::from(navigator::agent_build(api_key).await.expect("Failed building agent"), crate::agents::AgentRole::Navigator))),
         });
         let app = Router::new().route("/launch", post(launch_handler)).with_state(self.clone());
 

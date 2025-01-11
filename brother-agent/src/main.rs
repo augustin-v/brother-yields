@@ -1,19 +1,10 @@
-use std::collections::HashMap;
 
-use anyhow::{Error, Ok};
 use backend::Backend;
 use dotenv::dotenv;
-use rig::providers::openai;
-use rig::{completion::Prompt, loaders::FileLoader, tool::Tool};
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::sync::atomic::Ordering;
 use tokens::fetch_all_tokens;
 use tokio::time::Duration;
-use tracing::info;
-use tracing_subscriber::FmtSubscriber;
-use types::{ProtocolYield, StringContractAddress, YieldAnalyzer};
+use types::{StringContractAddress, YieldAnalyzer};
 
 mod agent_tools;
 mod agents;
@@ -34,7 +25,7 @@ async fn main() {
     tokio::time::sleep(Duration::from_millis(100)).await;
 
     // Fetch market data  Compute into yields data: apy, risk score etc...
-    let all_data = YieldAnalyzer::get_yields_data().await.expect("no data");
+    let _all_data = YieldAnalyzer::get_yields_data().await.expect("no data");
     server_task.await.expect("Server crashed unexpectedly");
     //    let openai_client = openai::Client::from_env();
     //
