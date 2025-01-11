@@ -3,6 +3,7 @@
 Project for the Starknet winter hackathon 2025!
 
 ## Quickstart
+### First terminal
 ```bash
 cp .env.example .env
 ```
@@ -10,11 +11,18 @@ configure .env then
 ```bash
 cargo run
 ```
-open second terminal to test with 
+### Second terminal
+for test prompt open second terminal to test with 
 ```bash
 curl -X POST http://localhost:5050/launch
 ```
-Which should return a success message
+to actually POST a prompt:
+```bash
+curl -X POST http://localhost:5050/prompt \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "YOUR_PROMPT_HERE"}'
+```
+Both should return a success message
 
 ### utils
 

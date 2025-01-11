@@ -3,7 +3,7 @@ use axum::{http::StatusCode, routing::post, Json, Router};
 use axum::extract::State;
 use axum;
 use parking_lot::RwLock;
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
@@ -27,6 +27,12 @@ pub struct ApiResponse {
     message: String,
 }
 
+#[derive(Deserialize)]
+pub struct PromptRequest {
+    prompt: String,
+}
+
+
 impl Backend {
     pub fn new() -> Self {
         Self {
@@ -40,7 +46,9 @@ impl Backend {
         self.agent_state = Some(AgentState{
             navigator:  Arc::new(Mutex::new(BrotherAgent::from(navigator::agent_build(api_key).await.expect("Failed building agent"), crate::agents::AgentRole::Navigator))),
         });
-        let app = Router::new().route("/launch", post(launch_handler)).with_state(self.clone());
+        let app = Router::new().route("/launch", post(launch_handler))
+                                        .route("/prompt", post(prompt_handler))
+                                        .with_state(self.clone());
 
         let listener = tokio::net::TcpListener::bind("127.0.0.1:5050")
             .await
@@ -63,6 +71,7 @@ impl Backend {
 
 }
 
+/// Testing function
 #[axum::debug_handler]
 pub async fn launch_handler(
     State(backend): State<Backend>
@@ -83,4 +92,33 @@ pub async fn launch_handler(
             }),
         ),
     }
+}
+
+#[axum::debug_handler]
+pub async fn prompt_handler(
+    State(backend): State<Backend>,
+    Json(request): Json<PromptRequest>,
+) -> (StatusCode, Json<ApiResponse>) {
+    let nav_agent = backend
+        .agent_state
+        .clone()
+        .expect("No agent available")
+        .navigator;
+    
+    let byebye = match nav_agent.lock().await.proccess_message(&request.prompt).await {
+        Ok(response) => (
+            StatusCode::OK,
+            Json(ApiResponse {
+                status: "success".to_string(),
+                message: response,
+            }),
+        ),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiResponse {
+                status: "error".to_string(),
+                message: e.to_string(),
+            }),
+        ),
+    }; byebye
 }
