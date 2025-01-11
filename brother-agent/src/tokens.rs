@@ -11,7 +11,7 @@ use starknet::{
 use std::collections::HashMap;
 
 // some verified tokens addresses on Starknet
-const BROTHER: &str = "0x03b405a98c9e795d427fe82cdeeeed803f221b52471e3a757574a2b4180793ee";
+const BROTHER: &str = "0x3b405a98c9e795d427fe82cdeeeed803f221b52471e3a757574a2b4180793ee";
 const STRK: &str = "0x4718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
 const ETH: &str = "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7";
 const USDC: &str = "0x53c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8";
@@ -94,7 +94,7 @@ pub async fn fetch_token_reserve(contract_address: Felt) -> Felt {
         .await
         .expect("failed to call contract");
 
-    let res = dbg!(call_result);
+    let res = call_result;
     // first item is the total supply
     res[0]
 }
@@ -118,7 +118,7 @@ pub async fn fetch_usdc_reserve() -> Felt {
         .await
         .expect("failed to call contract");
 
-    let res = dbg!(call_result);
+    let res = call_result;
     // first item is the total supply
     res[0]
 }

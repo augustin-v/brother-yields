@@ -89,7 +89,6 @@ impl CoinMarketData {
     }
 
     pub fn calculate_metrics(&mut self) -> Result<(), ComputeError> {
-        dbg!(self.reserve_a, self.reserve_b, self.price, self.volume_24h);
 
         self.liquidity = 2.0 * (self.reserve_a * self.reserve_b).sqrt();
 

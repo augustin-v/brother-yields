@@ -41,7 +41,7 @@ impl Backend {
         *self.listener_addr.write() = Some(Url::parse("http://127.0.0.1:5050/").unwrap());
 
         info!(
-            "Backend {} url {:?}",
+            "Backend is active: {} {}",
             self.is_active.load(Ordering::SeqCst),
             self.clone().listener_addr.read().as_ref().unwrap()
         );
