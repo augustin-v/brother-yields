@@ -28,8 +28,9 @@ mod utils;
 async fn main() {
     tracing_subscriber::fmt().init();
     dotenv().expect("failed to load .env");
+    let openai_api = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY undefined in .env");
     let backend = Backend::new();
-    let server_task = tokio::spawn(async move {backend.start().await.expect("didnt start")});
+    let server_task = tokio::spawn(async move {backend.start(openai_api).await.expect("didnt start")});
     tokio::time::sleep(Duration::from_millis(100)).await;
 
     // Fetch market data  Compute into yields data: apy, risk score etc...

@@ -1,27 +1,19 @@
-use crate::types::{AgentRole, BrotherAgent};
+use crate::backend::Backend;
 use anyhow::Error;
 use rig::{
-    agent::{Agent, AgentBuilder},
-    completion::Prompt,
-    loaders::FileLoader,
-    providers::openai::{self, CompletionModel, GPT_4O},
+    agent::{Agent, AgentBuilder}, loaders::FileLoader, providers::openai::{self, CompletionModel, GPT_4O}
 };
 use std::env;
 
-/// Role of the agentg
-const ROLE: AgentRole = AgentRole::Navigator;
-
-pub async fn launch() -> Result<(), Error> {
-    let nav_agent = BrotherAgent::from(
-        agent_build().await.expect("Error building navigator agent"),
-        ROLE,
-    );
-    println!("GOOD");
+pub async fn launch(backend: &Backend) -> Result<(), Error> {
+    let nav_agent = backend.agent_state.clone().expect("No agent available").navigator;
+    let result = nav_agent.lock().await.proccess_message("Hi from space.").await.expect("Failed processing message");
+    println!("GOOD,{}", result);
 
     Ok(())
 }
 
-async fn agent_build() -> Result<Agent<CompletionModel>, anyhow::Error> {
+pub async fn agent_build() -> Result<Agent<CompletionModel>, anyhow::Error> {
     let openai_client =
         openai::Client::new(&env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY not set"));
 
@@ -39,13 +31,6 @@ async fn agent_build() -> Result<Agent<CompletionModel>, anyhow::Error> {
             builder.context(format!("Rust Example {:?}:\n{}", path, content).as_str())
         }).preamble("You are a navigator in the Brother Yield project, made for assisting the user with DeFi strategy optimization on Starknet. You are the mastermind with all the tools. Use them wisely to meet the user's expectations. Do not answer requests unrelated to Starknet or DeFi strategies on Starknet under ANY circumstance.")
         .build();
-
-    // Prompt the agent and print the response
-    //    let response = agent
-    //        .prompt("Which rust example is best suited for the operation 1 + 2")
-    //        .await?;
-
-    //    println!("{}", response);
-
+    
     Ok(agent)
 }
