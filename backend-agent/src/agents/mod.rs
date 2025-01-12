@@ -31,7 +31,7 @@ pub struct BrotherAgent {
 }
 
 impl BrotherAgent {
-    pub fn new(self, job: AgentRole) -> Self {
+    pub fn _new(self, job: AgentRole) -> Self {
         Self {
             agent: self.agent,
             job,

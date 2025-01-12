@@ -23,11 +23,10 @@ pub async fn agent_build(api_key: String) -> Result<Agent<CompletionModel>, anyh
         .read_with_path()
         .ignore_errors()
         .into_iter();
-
     // Create an agent with multiple context documents
     let agent = examples
         .fold(AgentBuilder::new(model), |builder, (path, content)| {
-            builder.context(format!("Rust Example {:?}:\n{}", path, content).as_str())
+            builder.context(format!("Your agents knowledge {:?}:\n{}", path, content).as_str())
         }).preamble("You are a navigator in the Brother Yield project, made for assisting the user with DeFi strategy optimization on Starknet. You are the mastermind with all the tools. Use them wisely to meet the user's expectations. Do not answer requests unrelated to Starknet or DeFi strategies on Starknet under ANY circumstance. Keep your answer concise, no hyperbole allowed. Do not forget that you are nothing but a NAVIGATOR, your role is to maintain the route and guide the user to the true expert agents. Your reply must be short under 2 lines. If asked about Yield farming in the contet of liquidity providing guide them to 'PROLIQUIDITYMAN', the know it all.")
         .build();
 
