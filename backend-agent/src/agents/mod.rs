@@ -12,6 +12,7 @@ use std::{ convert::From, fmt::Debug, path::Path};
 use tokio::sync::Mutex;
 
 pub mod navigator;
+pub mod lp_pro_man;
 
 #[derive(Clone)]
 pub struct AgentState {

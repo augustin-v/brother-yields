@@ -1,8 +1,9 @@
+use crate::agents::BrotherAgent;
 use crate::json;
 use crate::types::{Portfolio, PortfolioError, ProtocolYield, YieldAnalyzer};
 use rig::tool::Tool;
 
-impl Tool for YieldAnalyzer {
+impl Tool for BrotherAgent {
     const NAME: &'static str = "analyze_yield";
     type Error = PortfolioError;
     type Args = Portfolio;

@@ -43,8 +43,13 @@ impl Backend {
     }
 
     pub async fn start(mut self, api_key: String) -> Result<(), anyhow::Error> {
+
+    let openai_client =
+    rig::providers::openai::Client::new(&api_key);
+
+let model = openai_client.completion_model(rig::providers::openai::GPT_4O);
         self.agent_state = Some(AgentState{
-            navigator:  Arc::new(Mutex::new(BrotherAgent::from(navigator::agent_build(api_key).await.expect("Failed building agent"), crate::agents::AgentRole::Navigator))),
+            navigator:  Arc::new(Mutex::new(BrotherAgent::from(navigator::agent_build(model).expect("Failed building agent"), crate::agents::AgentRole::Navigator))),
         });
         let app = Router::new().route("/launch", post(launch_handler))
                                         .route("/prompt", post(prompt_handler))
