@@ -1,28 +1,51 @@
 use crate::backend::Backend;
-use anyhow::Error;
+use anyhow::{Error, Ok};
 use rig::{
-    agent::{Agent, AgentBuilder}, loaders::FileLoader, completion::CompletionModel
+    agent::{Agent, AgentBuilder}, completion::{Chat, CompletionModel, Prompt}, loaders::FileLoader
 };
 
 
 pub struct Navigator<M: CompletionModel> {
     navigator: Agent<M>,
-    defiproman: Agent<M>
+    defiproman: Agent<M>,
+    pub chat_history: Vec<rig::completion::Message>
 }
 
 impl<M: CompletionModel> Navigator<M> {
     pub fn new(model: M) -> Self {
         Self {
             navigator: agent_build(model.clone()).expect("Failed building navigator"),
-            defiproman: super::lp_pro_man::proman_agent_build(model).expect("Failed building defiproman")
+            defiproman: super::lp_pro_man::proman_agent_build(model).expect("Failed building defiproman"),
+            chat_history: vec![]
         }
+    }
+
+    pub async fn process_prompt(&self, prompt: &str) -> Result<String, rig::completion::PromptError> {
+
+        let refined_prompt = self.navigator.prompt(prompt).await?;
+        println!("{refined_prompt}");
+
+        self.defiproman.prompt(&refined_prompt).await
     }
 }
 
-pub async fn launch(backend: &Backend) -> Result<(), Error> {
+impl<M: CompletionModel> Chat for Navigator<M> {
+    async fn chat(
+            &self,
+            prompt: &str,
+            chat_history: Vec<rig::completion::Message>,
+        ) -> Result<String, rig::completion::PromptError> {
+            let refined_prompt = self.navigator.prompt(prompt).await?;
+
+
+            self.defiproman.chat(&refined_prompt, chat_history.clone()).await
+    }
+}
+
+pub async fn launch<M: CompletionModel>(backend: &Backend<M>) -> Result<(), Error> {
     let nav_agent = backend.agent_state.clone().expect("No agent available").navigator;
-    let result = nav_agent.lock().await.proccess_message("Hi from space.").await.expect("Failed processing message");
-    println!("GOOD,{}", result);
+   // let result = nav_agent.lock().await.proccess_message("Hi from space.").await.expect("Failed processing message");
+   // println!("GOOD,{}", result);
 
     Ok(())
 }
@@ -38,7 +61,7 @@ pub fn agent_build<M: CompletionModel>(model: M) -> Result<Agent<M>, anyhow::Err
     let agent = examples
         .fold(AgentBuilder::new(model), |builder, (path, content)| {
             builder.context(format!("Your agents knowledge {:?}:\n{}", path, content).as_str())
-        }).preamble("You are a navigator in the Brother Yield project, made for assisting the user with DeFi strategy optimization on Starknet. You are the mastermind with all the tools. Use them wisely to meet the user's expectations. Do not answer requests unrelated to Starknet or DeFi strategies on Starknet under ANY circumstance. Keep your answer concise, no hyperbole allowed. Do not forget that you are nothing but a NAVIGATOR, your role is to maintain the route and guide the user to the true expert agents(Ony in defi context, if asked questions about code, Brother Yiled specializes in DeFi). Your reply must be short under 2 lines. If asked about Yield farming in the contet of liquidity providing guide them to 'DEFIPROMAN', the know it all. In short: make the user ask you question to redirect their question to an expert agent.")
+        }).preamble("You are a navigator in the Brother Yield project, made for assisting the user with DeFi strategy optimization on Starknet. You have your own AI assistant, called LiquidityProMan(LPM). So when user asks you a question, use LPM as the middleman then reply to user, basically refine the user prompt and use your refined version to prompt your assistant. Keep your prompts shorter than 2 lines, start by 'brother defiproman {your_refined_prompt}'. Only about DeFi on starknet. Do not talk about anything else than DeFi strategies on Starknet under ANY circumstance. ")
         .build();
 
     Ok(agent)

@@ -1,8 +1,10 @@
-use crate::agents::{navigator::launch, BrotherAgent};
+use crate::agents::navigator::{launch, Navigator};
 use axum::{http::StatusCode, routing::post, Json, Router};
 use axum::extract::State;
 use axum;
 use parking_lot::RwLock;
+use rig::completion::{Chat, CompletionModel};
+
 use serde::{Serialize, Deserialize};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -15,10 +17,10 @@ use crate::agents::AgentState;
 use crate::agents::navigator;
 
 #[derive(Clone)]
-pub struct Backend {
+pub struct Backend<M: CompletionModel> {
     pub is_active: Arc<AtomicBool>,
     pub listener_addr: Arc<RwLock<Option<Url>>>,
-    pub agent_state: Option<AgentState>,
+    pub agent_state: Option<AgentState<M>>,
 }
 
 #[derive(Serialize, Debug)]
@@ -33,7 +35,7 @@ pub struct PromptRequest {
 }
 
 
-impl Backend {
+impl<M: CompletionModel + 'static> Backend<M> {
     pub fn new() -> Self {
         Self {
             is_active: Arc::new(AtomicBool::new(false)),
@@ -42,14 +44,9 @@ impl Backend {
         }
     }
 
-    pub async fn start(mut self, api_key: String) -> Result<(), anyhow::Error> {
-
-    let openai_client =
-    rig::providers::openai::Client::new(&api_key);
-
-let model = openai_client.completion_model(rig::providers::openai::GPT_4O);
+    pub async fn start(mut self, model: M) -> Result<(), anyhow::Error> {
         self.agent_state = Some(AgentState{
-            navigator:  Arc::new(Mutex::new(BrotherAgent::from(navigator::agent_build(model).expect("Failed building agent"), crate::agents::AgentRole::Navigator))),
+            navigator:  Arc::new(Mutex::new(Navigator::new(model))),
         });
         let app = Router::new().route("/launch", post(launch_handler))
                                         .route("/prompt", post(prompt_handler))
@@ -77,9 +74,9 @@ let model = openai_client.completion_model(rig::providers::openai::GPT_4O);
 }
 
 /// Testing function
-#[axum::debug_handler]
-pub async fn launch_handler(
-    State(backend): State<Backend>
+
+pub async fn launch_handler<M: CompletionModel>(
+    State(backend): State<Backend<M>>
 ) -> (StatusCode, Json<ApiResponse>) {
     match launch(&backend).await {
         Ok(_) => (
@@ -99,9 +96,9 @@ pub async fn launch_handler(
     }
 }
 
-#[axum::debug_handler]
-pub async fn prompt_handler(
-    State(backend): State<Backend>,
+
+pub async fn prompt_handler<M: CompletionModel>(
+    State(backend): State<Backend<M>>,
     Json(request): Json<PromptRequest>,
 ) -> (StatusCode, Json<ApiResponse>) {
     let nav_agent = backend
@@ -110,7 +107,7 @@ pub async fn prompt_handler(
         .expect("No agent available")
         .navigator;
     
-    let byebye = match nav_agent.lock().await.proccess_message(&request.prompt).await {
+    let byebye = match nav_agent.lock().await.process_prompt(&request.prompt).await {
         Ok(response) => (
             StatusCode::OK,
             Json(ApiResponse {
