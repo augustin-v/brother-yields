@@ -5,7 +5,7 @@ pub fn calculate_risk_score(tvl: f64, volume_24h: f64, price_change_24h: f64) ->
     let tvl_score = 40.0 * (1.0 - (1000000.0 / tvl).min(1.0));
 
     // Volume factor (0-30 points, lower volume = higher risk)
-    let volume_score = 30.0 * (1.0 - (100000.0 / volume_24h).min(1.0));
+    let volume_score = 30.0 * (1.0 - (volume_24h / 100000.0).log10().max(0.0) / 5.0);
 
     // Volatility factor (0-30 points, higher price change = higher risk)
     let volatility_score = 30.0 * (price_change_24h.abs() / 100.0).min(1.0);

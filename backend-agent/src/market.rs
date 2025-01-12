@@ -89,6 +89,9 @@ impl CoinMarketData {
     }
 
     pub fn calculate_metrics(&mut self) -> Result<(), ComputeError> {
+        if self.reserve_a == 0.0 || self.reserve_b == 0.0 {
+            return Err(ComputeError::InvalidPool);
+        }
 
         self.liquidity = 2.0 * (self.reserve_a * self.reserve_b).sqrt();
 
@@ -101,7 +104,7 @@ impl CoinMarketData {
         Ok(())
     }
 
-    fn estimate_base_apy(&self) -> Result<f64, ComputeError> {
+    pub fn estimate_base_apy(&self) -> Result<f64, ComputeError> {
         if self.tvl <= 0.0 {
             return Err(ComputeError::InvalidPool);
         }

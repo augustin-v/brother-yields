@@ -44,17 +44,17 @@ impl From<HashMap<String, Token>> for Token {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ComputeError {
-//    #[error("Missing price data for token")]
-//    MissingPrice,
-//    #[error("Pool TVL too low")]
-//    LowTVL,
+    //    #[error("Missing price data for token")]
+    //    MissingPrice,
+    //    #[error("Pool TVL too low")]
+    //    LowTVL,
     #[error("Invalid pool data")]
     InvalidPool,
-//  #[error("Missing liquidity data")]
-//    MissingLiquidity,
+    //  #[error("Missing liquidity data")]
+    //    MissingLiquidity,
 }
 
-#[derive(Deserialize, Serialize, JsonSchema, Default, Debug)]
+#[derive(Deserialize, Serialize, JsonSchema, Default, Debug, Clone)]
 pub struct ProtocolYield {
     pub token: Token,
     pub apy: f64,

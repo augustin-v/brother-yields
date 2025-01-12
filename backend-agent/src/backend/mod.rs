@@ -1,11 +1,17 @@
 use crate::agents::navigator::{launch, Navigator};
-use axum::{http::StatusCode, routing::post, Json, Router};
-use axum::extract::State;
+use crate::types::ProtocolYield;
 use axum;
+use axum::extract::State;
+use axum::{
+    http::StatusCode,
+    routing::{get, post},
+    Json, Router,
+};
 use parking_lot::RwLock;
-use rig::completion::{Chat, CompletionModel};
+use rig::completion::CompletionModel;
 
-use serde::{Serialize, Deserialize};
+use crate::agents::AgentState;
+use serde::{Deserialize, Serialize};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
@@ -13,14 +19,13 @@ use std::sync::{
 use tokio::sync::Mutex;
 use tracing::info;
 use url::Url;
-use crate::agents::AgentState;
-use crate::agents::navigator;
 
 #[derive(Clone)]
 pub struct Backend<M: CompletionModel> {
     pub is_active: Arc<AtomicBool>,
     pub listener_addr: Arc<RwLock<Option<Url>>>,
     pub agent_state: Option<AgentState<M>>,
+    pub yields_data: Vec<ProtocolYield>,
 }
 
 #[derive(Serialize, Debug)]
@@ -34,23 +39,30 @@ pub struct PromptRequest {
     prompt: String,
 }
 
+#[derive(Serialize)]
+pub struct YieldsResponse {
+    yields: Vec<ProtocolYield>,
+}
 
 impl<M: CompletionModel + 'static> Backend<M> {
-    pub fn new() -> Self {
+    pub fn new(yields_data: Vec<ProtocolYield>) -> Self {
         Self {
             is_active: Arc::new(AtomicBool::new(false)),
             listener_addr: Arc::new(RwLock::new(None)),
-            agent_state: None
+            agent_state: None,
+            yields_data,
         }
     }
 
     pub async fn start(mut self, model: M) -> Result<(), anyhow::Error> {
-        self.agent_state = Some(AgentState{
-            navigator:  Arc::new(Mutex::new(Navigator::new(model))),
+        self.agent_state = Some(AgentState {
+            navigator: Arc::new(Mutex::new(Navigator::new(model))),
         });
-        let app = Router::new().route("/launch", post(launch_handler))
-                                        .route("/prompt", post(prompt_handler))
-                                        .with_state(self.clone());
+        let app = Router::new()
+            .route("/launch", post(launch_handler))
+            .route("/prompt", post(prompt_handler))
+            .route("/yields", get(yields_handler))
+            .with_state(self.clone());
 
         let listener = tokio::net::TcpListener::bind("127.0.0.1:5050")
             .await
@@ -70,13 +82,12 @@ impl<M: CompletionModel + 'static> Backend<M> {
             .expect("axum serving failure");
         Ok(())
     }
-
 }
 
 /// Testing function
 
 pub async fn launch_handler<M: CompletionModel>(
-    State(backend): State<Backend<M>>
+    State(backend): State<Backend<M>>,
 ) -> (StatusCode, Json<ApiResponse>) {
     match launch(&backend).await {
         Ok(_) => (
@@ -96,7 +107,6 @@ pub async fn launch_handler<M: CompletionModel>(
     }
 }
 
-
 pub async fn prompt_handler<M: CompletionModel>(
     State(backend): State<Backend<M>>,
     Json(request): Json<PromptRequest>,
@@ -106,7 +116,7 @@ pub async fn prompt_handler<M: CompletionModel>(
         .clone()
         .expect("No agent available")
         .navigator;
-    
+
     let byebye = match nav_agent.lock().await.process_prompt(&request.prompt).await {
         Ok(response) => (
             StatusCode::OK,
@@ -122,5 +132,17 @@ pub async fn prompt_handler<M: CompletionModel>(
                 message: e.to_string(),
             }),
         ),
-    }; byebye
+    };
+    byebye
+}
+
+pub async fn yields_handler<M: CompletionModel>(
+    State(backend): State<Backend<M>>,
+) -> (StatusCode, Json<YieldsResponse>) {
+    (
+        StatusCode::OK,
+        Json(YieldsResponse {
+            yields: backend.yields_data,
+        }),
+    )
 }

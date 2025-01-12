@@ -1,4 +1,4 @@
-use crate::StringContractAddress;
+use crate::types::StringContractAddress;
 use crate::{market::CoinMarketData, types::Token};
 use starknet::{
     core::types::{BlockId, BlockTag, Felt, FunctionCall},

@@ -1,27 +1,31 @@
 use crate::backend::Backend;
 use anyhow::{Error, Ok};
 use rig::{
-    agent::{Agent, AgentBuilder}, completion::{Chat, CompletionModel, Prompt}, loaders::FileLoader
+    agent::{Agent, AgentBuilder},
+    completion::{Chat, CompletionModel, Prompt},
+    loaders::FileLoader,
 };
-
 
 pub struct Navigator<M: CompletionModel> {
     navigator: Agent<M>,
     defiproman: Agent<M>,
-    pub chat_history: Vec<rig::completion::Message>
+    pub chat_history: Vec<rig::completion::Message>,
 }
 
 impl<M: CompletionModel> Navigator<M> {
     pub fn new(model: M) -> Self {
         Self {
             navigator: agent_build(model.clone()).expect("Failed building navigator"),
-            defiproman: super::lp_pro_man::proman_agent_build(model).expect("Failed building defiproman"),
-            chat_history: vec![]
+            defiproman: super::lp_pro_man::proman_agent_build(model)
+                .expect("Failed building defiproman"),
+            chat_history: vec![],
         }
     }
 
-    pub async fn process_prompt(&self, prompt: &str) -> Result<String, rig::completion::PromptError> {
-
+    pub async fn process_prompt(
+        &self,
+        prompt: &str,
+    ) -> Result<String, rig::completion::PromptError> {
         let refined_prompt = self.navigator.prompt(prompt).await?;
         println!("{refined_prompt}");
 
@@ -31,27 +35,36 @@ impl<M: CompletionModel> Navigator<M> {
 
 impl<M: CompletionModel> Chat for Navigator<M> {
     async fn chat(
-            &self,
-            prompt: &str,
-            chat_history: Vec<rig::completion::Message>,
-        ) -> Result<String, rig::completion::PromptError> {
-            let refined_prompt = self.navigator.prompt(prompt).await?;
+        &self,
+        prompt: &str,
+        chat_history: Vec<rig::completion::Message>,
+    ) -> Result<String, rig::completion::PromptError> {
+        let refined_prompt = self.navigator.prompt(prompt).await?;
 
-
-            self.defiproman.chat(&refined_prompt, chat_history.clone()).await
+        self.defiproman
+            .chat(&refined_prompt, chat_history.clone())
+            .await
     }
 }
 
 pub async fn launch<M: CompletionModel>(backend: &Backend<M>) -> Result<(), Error> {
-    let nav_agent = backend.agent_state.clone().expect("No agent available").navigator;
-   // let result = nav_agent.lock().await.proccess_message("Hi from space.").await.expect("Failed processing message");
-   // println!("GOOD,{}", result);
+    let nav_agent = backend
+        .agent_state
+        .clone()
+        .expect("No agent available")
+        .navigator;
+    let result = nav_agent
+        .lock()
+        .await
+        .process_prompt("Hi from space.")
+        .await
+        .expect("Failed processing prompt");
+    println!("GOOD,{}", result);
 
     Ok(())
 }
 
 pub fn agent_build<M: CompletionModel>(model: M) -> Result<Agent<M>, anyhow::Error> {
-
     // Load in all the rust examples
     let examples = FileLoader::with_glob("agents/*.rs")?
         .read_with_path()
