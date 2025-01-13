@@ -3,12 +3,13 @@ use crate::types::ProtocolYield;
 use axum;
 use axum::extract::State;
 use axum::{
-    http::StatusCode,
+    http::{StatusCode, Method, header},
     routing::{get, post},
     Json, Router,
 };
 use parking_lot::RwLock;
 use rig::completion::CompletionModel;
+use tower_http::cors::CorsLayer;
 
 use crate::agents::AgentState;
 use serde::{Deserialize, Serialize};
@@ -58,10 +59,18 @@ impl<M: CompletionModel + 'static> Backend<M> {
         self.agent_state = Some(AgentState {
             navigator: Arc::new(Mutex::new(Navigator::new(model, tools))),
         });
+
+        let cors = CorsLayer::new()
+        .allow_origin("http://localhost:3000".parse::<header::HeaderValue>().unwrap())
+        .allow_methods([Method::GET, Method::POST])
+        .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION])
+        .allow_credentials(true);
+
         let app = Router::new()
             .route("/launch", post(launch_handler))
             .route("/prompt", post(prompt_handler))
             .route("/yields", get(yields_handler))
+            .layer(cors)
             .with_state(self.clone());
 
         let listener = tokio::net::TcpListener::bind("127.0.0.1:5050")
