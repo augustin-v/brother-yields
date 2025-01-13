@@ -1,7 +1,6 @@
 use backend::Backend;
 use dotenv::dotenv;
-use tokens::fetch_all_tokens;
-use types::{StringContractAddress, YieldAnalyzer};
+use types::YieldAnalyzer;
 
 mod agent_tools;
 mod agents;

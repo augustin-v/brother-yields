@@ -1,4 +1,3 @@
-
 use backend_agent::market::CoinMarketData;
 use backend_agent::math::{calculate_risk_score, STARKNET_TVL_ESTIMATE};
 use backend_agent::types::{ComputeError, StringContractAddress, Token};
@@ -134,7 +133,7 @@ fn test_market_data_with_zero_values() {
     assert_eq!(market_data.risk_score, 0.0); // Highest risk when all values are zero, the higher the score the safer
 }
 
-// Can't get a perfect risk score for any kind of situation we have a very complex system so will add flags to the frontend in edge cases; e.g.: `/!\ Extremely low 24h volume /!\` etc...
+// Can't get a perfect risk score for any kind of situation we'd need to have a very complex system so will add flags to the frontend in edge cases; e.g.: `/!\ Extremely low 24h volume /!\` etc...
 #[ignore]
 #[test]
 fn test_risk_score_edge_cases() {
@@ -144,11 +143,17 @@ fn test_risk_score_edge_cases() {
 
     // Test with very low volume
     let low_volume_score = calculate_risk_score(STARKNET_TVL_ESTIMATE, 1.0, MOCK_PRICE_CHANGE);
-    assert!(low_volume_score < 20.0, "Low volume should result in high risk");
+    assert!(
+        low_volume_score < 20.0,
+        "Low volume should result in high risk"
+    );
 
     // Test with extreme price change
     let high_volatility_score = calculate_risk_score(STARKNET_TVL_ESTIMATE, MOCK_VOLUME, 100.0);
-    assert!(high_volatility_score < 50.0, "High volatility should increase risk");
+    assert!(
+        high_volatility_score < 50.0,
+        "High volatility should increase risk"
+    );
 }
 
 #[test]
@@ -174,27 +179,41 @@ fn test_market_data_apy_calculation_with_low_tvl() {
     market_data.tvl = 1.0; // Very low TVL
 
     market_data.calculate_metrics().unwrap();
-    assert!(market_data.apy > 0.0, "APY should be positive even with low TVL");
+    assert!(
+        market_data.apy > 0.0,
+        "APY should be positive even with low TVL"
+    );
 }
-
 
 // :(
 #[ignore]
 #[test]
 fn test_risk_score_consistency() {
     let base_score = calculate_risk_score(STARKNET_TVL_ESTIMATE, MOCK_VOLUME, MOCK_PRICE_CHANGE);
-    
+
     // Increasing TVL should decrease risk
-    let higher_tvl_score = calculate_risk_score(STARKNET_TVL_ESTIMATE * 2.0, MOCK_VOLUME, MOCK_PRICE_CHANGE);
-    assert!(higher_tvl_score > base_score, "Higher TVL should result in lower risk");
+    let higher_tvl_score =
+        calculate_risk_score(STARKNET_TVL_ESTIMATE * 2.0, MOCK_VOLUME, MOCK_PRICE_CHANGE);
+    assert!(
+        higher_tvl_score > base_score,
+        "Higher TVL should result in lower risk"
+    );
 
     // Increasing volume should decrease risk
-    let higher_volume_score = calculate_risk_score(STARKNET_TVL_ESTIMATE, MOCK_VOLUME * 2.0, MOCK_PRICE_CHANGE);
-    assert!(higher_volume_score > base_score, "Higher volume should result in lower risk");
+    let higher_volume_score =
+        calculate_risk_score(STARKNET_TVL_ESTIMATE, MOCK_VOLUME * 2.0, MOCK_PRICE_CHANGE);
+    assert!(
+        higher_volume_score > base_score,
+        "Higher volume should result in lower risk"
+    );
 
     // Increasing price change should increase risk
-    let higher_volatility_score = calculate_risk_score(STARKNET_TVL_ESTIMATE, MOCK_VOLUME, MOCK_PRICE_CHANGE * 2.0);
-    assert!(higher_volatility_score < base_score, "Higher price change should result in higher risk");
+    let higher_volatility_score =
+        calculate_risk_score(STARKNET_TVL_ESTIMATE, MOCK_VOLUME, MOCK_PRICE_CHANGE * 2.0);
+    assert!(
+        higher_volatility_score < base_score,
+        "Higher price change should result in higher risk"
+    );
 }
 
 #[test]
@@ -202,7 +221,9 @@ fn test_from_gecko_data_with_different_tokens() {
     tokio_test::block_on(async {
         let tokens = ["ETH", "STRK", "BROTHER"];
         for token in tokens.iter() {
-            let market_data = CoinMarketData::from_gecko_data(token, MOCK_PRICE, MOCK_VOLUME, MOCK_PRICE_CHANGE).await;
+            let market_data =
+                CoinMarketData::from_gecko_data(token, MOCK_PRICE, MOCK_VOLUME, MOCK_PRICE_CHANGE)
+                    .await;
             assert_eq!(market_data.price, MOCK_PRICE);
             assert_eq!(market_data.volume_24h, MOCK_VOLUME);
             assert_eq!(market_data.price_change_24h, MOCK_PRICE_CHANGE);

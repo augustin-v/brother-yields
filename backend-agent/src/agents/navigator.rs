@@ -9,7 +9,7 @@ use rig::{
 pub struct Navigator<M: CompletionModel> {
     navigator: Agent<M>,
     defiproman: Agent<M>,
-    pub chat_history: Vec<rig::completion::Message>,
+    pub _chat_history: Vec<rig::completion::Message>,
 }
 
 impl<M: CompletionModel> Navigator<M> {
@@ -18,7 +18,7 @@ impl<M: CompletionModel> Navigator<M> {
             navigator: agent_build(model.clone()).expect("Failed building navigator"),
             defiproman: super::lp_pro_man::proman_agent_build(model)
                 .expect("Failed building defiproman"),
-            chat_history: vec![],
+            _chat_history: vec![],
         }
     }
 
