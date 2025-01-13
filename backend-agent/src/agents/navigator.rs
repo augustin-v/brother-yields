@@ -1,4 +1,4 @@
-use crate::backend::Backend;
+use crate::{agent_tools::yield_analyzer::AnalyzerTool, backend::Backend, types::ProtocolYield};
 use anyhow::{Error, Ok};
 use rig::{
     agent::{Agent, AgentBuilder},
@@ -6,19 +6,36 @@ use rig::{
     loaders::FileLoader,
 };
 
+#[derive(Clone)]
+pub struct Tools {
+    pub analyzer_tool: AnalyzerTool
+}
+
+impl Tools {
+    pub fn new(yields_data: Vec<ProtocolYield>) -> Self{
+        Self {
+            analyzer_tool: AnalyzerTool {
+                yields_data
+            }
+        }
+    }
+}
+
 pub struct Navigator<M: CompletionModel> {
     navigator: Agent<M>,
     defiproman: Agent<M>,
     pub _chat_history: Vec<rig::completion::Message>,
+    tools: Tools
 }
 
 impl<M: CompletionModel> Navigator<M> {
-    pub fn new(model: M) -> Self {
+    pub fn new(model: M, tools: Tools) -> Self {
         Self {
             navigator: agent_build(model.clone()).expect("Failed building navigator"),
-            defiproman: super::lp_pro_man::proman_agent_build(model)
+            defiproman: super::lp_pro_man::proman_agent_build(model, tools.clone())
                 .expect("Failed building defiproman"),
             _chat_history: vec![],
+            tools
         }
     }
 

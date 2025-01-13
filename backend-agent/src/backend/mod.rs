@@ -1,4 +1,4 @@
-use crate::agents::navigator::{launch, Navigator};
+use crate::agents::navigator::{launch, Navigator, Tools};
 use crate::types::ProtocolYield;
 use axum;
 use axum::extract::State;
@@ -54,9 +54,9 @@ impl<M: CompletionModel + 'static> Backend<M> {
         }
     }
 
-    pub async fn start(mut self, model: M) -> Result<(), anyhow::Error> {
+    pub async fn start(mut self, model: M, tools: Tools) -> Result<(), anyhow::Error> {
         self.agent_state = Some(AgentState {
-            navigator: Arc::new(Mutex::new(Navigator::new(model))),
+            navigator: Arc::new(Mutex::new(Navigator::new(model, tools))),
         });
         let app = Router::new()
             .route("/launch", post(launch_handler))
