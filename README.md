@@ -5,6 +5,7 @@ Project for the Starknet winter hackathon 2025!
 ## Quickstart
 ### First terminal
 ```bash
+cd backend-agent
 cp .env.example .env
 ```
 configure .env then
@@ -12,6 +13,10 @@ configure .env then
 cargo run
 ```
 ### Second terminal
+```bash
+npm i && npm run dev
+```
+---
 for test prompt open second terminal to test with 
 ```bash
 curl -X POST http://localhost:5050/launch
@@ -22,7 +27,7 @@ curl -X POST http://localhost:5050/prompt \
   -H "Content-Type: application/json" \
   -d '{"prompt": "YOUR_PROMPT_HERE"}'
 ```
-Both should return a success message
+Both should return a success message with the returned prompt inside
 
 ### utils
 
