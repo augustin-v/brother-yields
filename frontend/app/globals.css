@@ -1,0 +1,70 @@
+/* globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 0, 0, 0;
+  --background-end-rgb: 0, 0, 0;
+}
+
+@keyframes wave {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-1%) scale(1.01);
+  }
+}
+
+.animate-wave {
+  animation: wave 20s ease-in-out infinite;
+  background: radial-gradient(circle at center, 
+    rgba(124, 58, 237, 0.06) 0%,
+    rgba(0, 0, 0, 0) 70%
+  );
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+    to bottom,
+    rgb(var(--background-start-rgb)),
+    rgb(var(--background-end-rgb))
+  );
+}
+
+@layer utilities {
+  .animate-float-boats {
+    animation: float-boats 90s linear infinite;
+  }
+}
+
+@keyframes float-boats {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 100% 100%;
+  }
+}
+
+@keyframes float-horizontal {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+.prose-invert {
+  --tw-prose-body: theme('colors.white');
+  --tw-prose-headings: theme('colors.white');
+  --tw-prose-links: theme('colors.purple.400');
+  --tw-prose-bold: theme('colors.white');
+  --tw-prose-counters: theme('colors.zinc.400');
+  --tw-prose-bullets: theme('colors.zinc.400');
+  --tw-prose-hr: theme('colors.zinc.700');
+  --tw-prose-code: theme('colors.white');
+  --tw-prose-pre-code: theme('colors.white');
+  --tw-prose-pre-bg: theme('colors.zinc.800');
+  --tw-prose-quotes: theme('colors.zinc.100');
+}
