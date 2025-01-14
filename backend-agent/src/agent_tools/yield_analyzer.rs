@@ -27,7 +27,9 @@ impl YieldAnalyzer {
                 token: token.clone(),
                 apy: market.apy,
                 tvl: market.tvl,
+                volume_24h: market.volume_24h,
                 risk_score: market.risk_score,
+                pool_type: market.pool_type.clone()
             };
             res.push(temp_proto_yield);
         }

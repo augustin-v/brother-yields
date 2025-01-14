@@ -59,7 +59,9 @@ pub struct ProtocolYield {
     pub token: Token,
     pub apy: f64,
     pub tvl: f64,
+    pub volume_24h: f64,
     pub risk_score: f64,
+    pub pool_type: PoolType
 }
 
 #[derive(Deserialize, Serialize, JsonSchema)]
@@ -73,4 +75,12 @@ pub struct Portfolio {
 pub struct YieldAnalyzer {
     pub portfolio_data: Vec<Asset>,
     pub yields_data: Vec<ProtocolYield>,
+}
+
+#[derive(Deserialize, Serialize, JsonSchema, Default, Debug, Clone)]
+pub enum PoolType {
+    #[default]
+    Stable,
+    Volatile,
+    Degen
 }

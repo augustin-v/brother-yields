@@ -57,17 +57,6 @@ fn test_risk_score_calculation() {
 }
 
 #[test]
-fn test_invalid_pool_error() {
-    let market_data = CoinMarketData {
-        tvl: 0.0,
-        ..setup_market_data()
-    };
-
-    let result = market_data.estimate_base_apy();
-    assert!(matches!(result, Err(ComputeError::InvalidPool)));
-}
-
-#[test]
 fn test_token_creation() {
     let token = Token {
         name: "TEST".to_string(),

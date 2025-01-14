@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import ParticlesBackground from "./components/ParticlesBackground";
+import PoolStats from './components/PoolStats';
 
 export default function Home() {
   const [prompt, setPrompt] = useState('');
@@ -39,7 +40,7 @@ export default function Home() {
   return (
 <div className="relative min-h-screen flex flex-col">
   <ParticlesBackground />
-  
+  <PoolStats />
   <div className="space-y-4 text-center p-4 z-10">
     <h2 className="text-sm text-zinc-400 font-light">
       Welcome to Brother Yield
@@ -82,7 +83,7 @@ export default function Home() {
         type="text"
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
-        placeholder="Ask anything..."
+        placeholder="How can I help you?"
         className="w-full bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 rounded-lg px-6 py-4 pr-12 text-lg
         focus:outline-none focus:ring-1 focus:ring-purple-500/10 focus:border-purple-500/20
         placeholder-zinc-400 transition-all duration-300 ease-in-out"

@@ -1,4 +1,4 @@
-use crate::types::StringContractAddress;
+use crate::types::{StringContractAddress, PoolType};
 use crate::{market::CoinMarketData, types::Token};
 use starknet::{
     core::types::{BlockId, BlockTag, Felt, FunctionCall},
@@ -54,28 +54,68 @@ pub async fn fetch_all_tokens() -> (Vec<Token>, Vec<CoinMarketData>) {
                     _ => continue,
                 };
 
-                // Create and store Token
-                tokens.push(Token {
-                    name: token_name.to_string(),
-                    address: StringContractAddress::from(address.as_str()),
-                    price,
-                });
+                match token_name {
+                    "STRK" | "ETH" => {
+                        // Create token entries for both pool types
+                        tokens.push(Token {
+                            name: token_name.to_string(),
+                            address: StringContractAddress::from(address.as_str()),
+                            price,
+                        });
+                        tokens.push(Token {
+                            name: token_name.to_string(),
+                            address: StringContractAddress::from(address.as_str()),
+                            price,
+                        });
 
-                // Create and store CoinMarketData
-                let market_data_entry = CoinMarketData::from_gecko_data(
-                    token_name,
-                    price,
-                    volume_24h,
-                    price_change_24h,
-                )
-                .await;
+                        // Create market data for Standard pool
+                        let standard_market = CoinMarketData::from_gecko_data(
+                            token_name,
+                            price,
+                            volume_24h,
+                            price_change_24h,
+                            PoolType::Stable,
+                        )
+                        .await;
+                        market_data.push(standard_market);
 
-                market_data.push(market_data_entry);
+                        // Create market data for Degen pool
+                        let degen_market = CoinMarketData::from_gecko_data(
+                            token_name,
+                            price,
+                            volume_24h,
+                            price_change_24h,
+                            PoolType::Degen,
+                        )
+                        .await;
+                        market_data.push(degen_market);
+                    }
+                    "BROTHER" => {
+                        // BROTHER only has degen pool
+                        tokens.push(Token {
+                            name: token_name.to_string(),
+                            address: StringContractAddress::from(address.as_str()),
+                            price,
+                        });
+
+                        let market_data_entry = CoinMarketData::from_gecko_data(
+                            token_name,
+                            price,
+                            volume_24h,
+                            price_change_24h,
+                            PoolType::Degen,
+                        )
+                        .await;
+                        market_data.push(market_data_entry);
+                    }
+                    _ => continue,
+                }
             }
         }
     }
     (tokens, market_data)
 }
+
 
 pub async fn fetch_token_reserve(contract_address: Felt) -> Felt {
     let provider = JsonRpcClient::new(HttpTransport::new(
