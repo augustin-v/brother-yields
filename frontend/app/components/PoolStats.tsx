@@ -77,7 +77,7 @@ export default function PoolStats() {
         >
           {/* Rest of your pool display code remains the same */}
           <div className="flex justify-between items-center mb-2">
-            <h3 className="text-lg font-bold">{pool.token.name}</h3>
+            <h3 className="text-lg font-bold">{pool.token.name}/USDC</h3>
             <span className="text-sm text-zinc-400">
               ${pool.token.priceUSD.toFixed(2)}
             </span>
@@ -86,8 +86,8 @@ export default function PoolStats() {
           <div className="space-y-2">
             <div className="flex justify-between">
               <span>APY</span>
-              <span className={pool.apy > 500 ? 'text-yellow-400' : 'text-green-400'}>
-                {pool.apy.toFixed(2)}%
+              <span className={pool.apy * 100 > 500 ? 'text-yellow-400' : 'text-green-400'}>
+                {(pool.apy * 100).toFixed(2)}%
               </span>
             </div>
             <div className="flex justify-between">

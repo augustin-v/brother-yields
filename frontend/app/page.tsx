@@ -43,7 +43,7 @@ export default function Home() {
   <PoolStats />
   <div className="space-y-4 text-center p-4 z-10">
     <h2 className="text-sm text-zinc-400 font-light">
-      Welcome to Brother Yield
+    Brother Yield
     </h2>
     <h1 className="text-4xl font-bold text-white">
       Discuss the best Defi strategies on Starknet.
@@ -93,9 +93,6 @@ export default function Home() {
         onClick={handleSubmit}
         className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M5 12h14m-7-7v14" />
-        </svg>
       </button>
     </div>
   </div>
