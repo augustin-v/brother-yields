@@ -26,7 +26,7 @@ pub struct StringContractAddress(pub String);
 
 impl StringContractAddress {
     pub fn from(str: &str) -> StringContractAddress {
-        Self { 0: str.to_string() }
+        Self(str.to_string())
     }
 }
 

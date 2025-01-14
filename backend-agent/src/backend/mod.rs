@@ -1,6 +1,5 @@
 use crate::agents::navigator::{launch, Navigator, Tools};
 use crate::types::ProtocolYield;
-use axum;
 use axum::extract::State;
 use axum::{
     http::{StatusCode, Method, header},
@@ -55,9 +54,9 @@ impl<M: CompletionModel + 'static> Backend<M> {
         }
     }
 
-    pub async fn start(mut self, model: M, tools: Tools) -> Result<(), anyhow::Error> {
+    pub async fn start(mut self, model: M, tools: Tools, context: String) -> Result<(), anyhow::Error> {
         self.agent_state = Some(AgentState {
-            navigator: Arc::new(Mutex::new(Navigator::new(model, tools))),
+            navigator: Arc::new(Mutex::new(Navigator::new(model, tools, context))),
         });
 
         let cors = CorsLayer::new()
@@ -94,7 +93,6 @@ impl<M: CompletionModel + 'static> Backend<M> {
 }
 
 /// Testing function
-
 pub async fn launch_handler<M: CompletionModel>(
     State(backend): State<Backend<M>>,
 ) -> (StatusCode, Json<ApiResponse>) {

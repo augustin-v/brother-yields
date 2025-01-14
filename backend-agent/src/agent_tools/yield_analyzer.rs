@@ -91,11 +91,11 @@ pub struct AnalyzArgs {
     risk_score: Option<String>
 }
 
-fn format_yields_data(yields_data: Vec<ProtocolYield>) -> String {
+pub fn format_yields_data(yields_data: Vec<ProtocolYield>) -> String {
     let formatted_data = yields_data.iter().map(|yield_data| {
         format!("Token: {}, APY: {:.2}%, TVL: ${:.2}, Risk Score: {:.2}",
             yield_data.token.name, yield_data.apy * 100.0, yield_data.tvl, yield_data.risk_score)
     }).collect::<Vec<String>>().join(", ");
     
-    format!("Here is the latest yields data: {}.", formatted_data)
+    format!("Here is the latest yields data of {{token}}/USDC pair: {}.", formatted_data)
 }

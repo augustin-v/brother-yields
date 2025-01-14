@@ -29,10 +29,10 @@ pub struct Navigator<M: CompletionModel> {
 }
 
 impl<M: CompletionModel> Navigator<M> {
-    pub fn new(model: M, tools: Tools) -> Self {
+    pub fn new(model: M, tools: Tools, context: String) -> Self {
         Self {
             navigator: agent_build(model.clone()).expect("Failed building navigator"),
-            defiproman: super::lp_pro_man::proman_agent_build(model, tools.clone())
+            defiproman: super::lp_pro_man::proman_agent_build(model, tools.clone(), context)
                 .expect("Failed building defiproman"),
             _chat_history: vec![],
             tools
@@ -91,7 +91,7 @@ pub fn agent_build<M: CompletionModel>(model: M) -> Result<Agent<M>, anyhow::Err
     let agent = examples
         .fold(AgentBuilder::new(model), |builder, (path, content)| {
             builder.context(format!("Your agents knowledge {:?}:\n{}", path, content).as_str())
-        }).preamble("You are a navigator in the Brother Yield project, made for assisting the user with DeFi strategy optimization on Starknet. You have your own AI assistant, called LiquidityProMan(LPM). So when user asks you a question, use LPM as the middleman then reply to user, basically refine the user prompt and use your refined version to prompt your assistant. Keep your prompts shorter than 2 lines, start by 'brother defiproman {your_refined_prompt}'. Only about DeFi on starknet. Do not talk about anything else than DeFi strategies on Starknet under ANY circumstance. ")
+        }).preamble("You are a navigator in the Brother Yield project, made for assisting the user with DeFi strategy optimization on Starknet. You have your own AI defi expert, called LiquidityProMan(LPM). So when user asks you a question you will be the middleman: refine the user prompt and use your refined version to prompt LPM. Keep your prompts shorter than 2 lines, start by 'brother defiproman {your_refined_prompt}'. ex: 'user:' 'hello' 'navigator': 'brother defiproman hello'")
         .build();
 
     Ok(agent)

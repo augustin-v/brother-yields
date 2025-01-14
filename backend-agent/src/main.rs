@@ -26,9 +26,10 @@ async fn main() {
 
     // Initiate agents, tools and backend
     let tools = Tools::new(yields_data.clone());
+    let context = crate::agent_tools::yield_analyzer::format_yields_data(yields_data.clone());
     let model = openai_client.completion_model("gpt-4o-mini");
     let backend = Backend::new(yields_data);
-    let server_task = tokio::spawn(async move { backend.start(model, tools).await.expect("didnt start") });
+    let server_task = tokio::spawn(async move { backend.start(model, tools, context).await.expect("didnt start") });
 
     server_task.await.expect("Server crashed unexpectedly");
 }
