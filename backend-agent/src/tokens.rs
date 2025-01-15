@@ -1,4 +1,4 @@
-use crate::types::{StringContractAddress, PoolType};
+use crate::types::{PoolType, StringContractAddress};
 use crate::{market::CoinMarketData, types::Token};
 use starknet::{
     core::types::{BlockId, BlockTag, Felt, FunctionCall},
@@ -115,7 +115,6 @@ pub async fn fetch_all_tokens() -> (Vec<Token>, Vec<CoinMarketData>) {
     }
     (tokens, market_data)
 }
-
 
 pub async fn fetch_token_reserve(contract_address: Felt) -> Felt {
     let provider = JsonRpcClient::new(HttpTransport::new(

@@ -8,15 +8,13 @@ use rig::{
 
 #[derive(Clone)]
 pub struct Tools {
-    pub analyzer_tool: AnalyzerTool
+    pub analyzer_tool: AnalyzerTool,
 }
 
 impl Tools {
-    pub fn new(yields_data: Vec<ProtocolYield>) -> Self{
+    pub fn new(yields_data: Vec<ProtocolYield>) -> Self {
         Self {
-            analyzer_tool: AnalyzerTool {
-                yields_data
-            }
+            analyzer_tool: AnalyzerTool { yields_data },
         }
     }
 }
@@ -25,7 +23,7 @@ pub struct Navigator<M: CompletionModel> {
     navigator: Agent<M>,
     defiproman: Agent<M>,
     pub _chat_history: Vec<rig::completion::Message>,
-    tools: Tools
+    tools: Tools,
 }
 
 impl<M: CompletionModel> Navigator<M> {
@@ -35,7 +33,7 @@ impl<M: CompletionModel> Navigator<M> {
             defiproman: super::lp_pro_man::proman_agent_build(model, tools.clone(), context)
                 .expect("Failed building defiproman"),
             _chat_history: vec![],
-            tools
+            tools,
         }
     }
 

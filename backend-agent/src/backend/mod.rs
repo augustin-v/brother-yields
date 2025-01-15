@@ -2,7 +2,7 @@ use crate::agents::navigator::{launch, Navigator, Tools};
 use crate::types::ProtocolYield;
 use axum::extract::State;
 use axum::{
-    http::{StatusCode, Method, header},
+    http::{header, Method, StatusCode},
     routing::{get, post},
     Json, Router,
 };
@@ -54,16 +54,25 @@ impl<M: CompletionModel + 'static> Backend<M> {
         }
     }
 
-    pub async fn start(mut self, model: M, tools: Tools, context: String) -> Result<(), anyhow::Error> {
+    pub async fn start(
+        mut self,
+        model: M,
+        tools: Tools,
+        context: String,
+    ) -> Result<(), anyhow::Error> {
         self.agent_state = Some(AgentState {
             navigator: Arc::new(Mutex::new(Navigator::new(model, tools, context))),
         });
 
         let cors = CorsLayer::new()
-        .allow_origin("http://localhost:3000".parse::<header::HeaderValue>().unwrap())
-        .allow_methods([Method::GET, Method::POST])
-        .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION])
-        .allow_credentials(true);
+            .allow_origin(
+                "http://localhost:3000"
+                    .parse::<header::HeaderValue>()
+                    .unwrap(),
+            )
+            .allow_methods([Method::GET, Method::POST])
+            .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION])
+            .allow_credentials(true);
 
         let app = Router::new()
             .route("/launch", post(launch_handler))

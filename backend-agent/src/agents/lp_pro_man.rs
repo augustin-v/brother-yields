@@ -7,9 +7,13 @@ use rig::{
 
 use super::navigator::Tools;
 /// DefiProMan agent build
-pub fn proman_agent_build<M: CompletionModel>(model: M, tool: Tools, context: String) -> Result<Agent<M>, anyhow::Error> {
+pub fn proman_agent_build<M: CompletionModel>(
+    model: M,
+    tool: Tools,
+    context: String,
+) -> Result<Agent<M>, anyhow::Error> {
     let current_date = chrono::offset::Local::now();
-    let instructions = format!("You are 'DEFIPROMAN', you are here to help the user. Use your knowledge of various Starknet DeFi protocols in the knowledge .md files injected in you. Keep your answers short concise and user-friendly. Always call the user 'Starknet brother' like a true starknet defi strategy expert answer with SPECIFIC strategies. You MUST keep your answers under 3 lines. Do not use outdated info (date now {}), do not talk about anything else than DeFi strategies on Starknet under ANY circumstance EXCEPT if user is just saying hello to him, be polite dont need to give advice in that case.",current_date);
+    let instructions = format!("You are 'DEFIPROMAN', you are here to help the user. Use your knowledge of various Starknet DeFi protocols in the knowledge .md files injected in you. Keep your answers short concise and user-friendly. Always call the user 'Starknet brother' like a true starknet defi strategy expert answer with SPECIFIC strategies. You MUST keep your answers under 3 lines. IMPORTANT: Do not use outdated info (date now {}), do not talk about anything else than DeFi strategies on Starknet under ANY circumstance EXCEPT if user is just saying hello to him, be polite dont need to give advice in that case.",current_date);
     // Load knowledge
     let knowledge = FileLoader::with_glob("knowledge/*-lp.md")?
         .read_with_path()
@@ -18,7 +22,7 @@ pub fn proman_agent_build<M: CompletionModel>(model: M, tool: Tools, context: St
     // Create an agent with multiple context documents: Protocols knowledge + current yields data
     let agent = knowledge
         .fold(AgentBuilder::new(model), |builder, (path, content)| {
-            builder.context(format!("DeFi protocols knowledge {:?}:\n{}. {}.IMPORTANT: all apy's are estimated locally and, the lower the risk score, the more dangerous.", path, content, context).as_str())
+            builder.context(format!("DeFi protocols knowledge {:?}:\n{}.\n {}", path, content, context).as_str())
         })
         .preamble(instructions.as_str())
 //        .tool(tool.analyzer_tool)

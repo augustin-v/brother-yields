@@ -7,8 +7,8 @@ use serde::Serialize;
 use serde_json::json;
 
 #[derive(Serialize, Clone)]
-pub struct AnalyzerTool{
-    pub yields_data: Vec<ProtocolYield>
+pub struct AnalyzerTool {
+    pub yields_data: Vec<ProtocolYield>,
 }
 
 impl YieldAnalyzer {
@@ -29,7 +29,7 @@ impl YieldAnalyzer {
                 tvl: market.tvl,
                 volume_24h: market.volume_24h,
                 risk_score: market.risk_score,
-                pool_type: market.pool_type.clone()
+                pool_type: market.pool_type.clone(),
             };
             res.push(temp_proto_yield);
         }
@@ -64,21 +64,25 @@ impl Tool for AnalyzerTool {
             })
         }
     }
-    
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         let filtered_data = if let Some(risk_score) = args.risk_score {
-            self.yields_data.iter()
-                .filter(|yield_data| yield_data.token.name == args.token && yield_data.risk_score.to_string() == risk_score)
+            self.yields_data
+                .iter()
+                .filter(|yield_data| {
+                    yield_data.token.name == args.token
+                        && yield_data.risk_score.to_string() == risk_score
+                })
                 .cloned()
                 .collect()
         } else {
-            self.yields_data.iter()
+            self.yields_data
+                .iter()
                 .filter(|yield_data| yield_data.token.name == args.token)
                 .cloned()
                 .collect()
         };
-        
+
         Ok(format_yields_data(filtered_data))
     }
 }
@@ -90,14 +94,26 @@ pub struct AnalyzeError(pub String);
 #[derive(serde::Deserialize)]
 pub struct AnalyzArgs {
     token: String,
-    risk_score: Option<String>
+    risk_score: Option<String>,
 }
 
 pub fn format_yields_data(yields_data: Vec<ProtocolYield>) -> String {
-    let formatted_data = yields_data.iter().map(|yield_data| {
-        format!("Token: {}, APY: {:.2}%, TVL: ${:.2}, Risk Score: {:.2}",
-            yield_data.token.name, yield_data.apy * 100.0, yield_data.tvl, yield_data.risk_score)
-    }).collect::<Vec<String>>().join(", ");
-    
-    format!("Here is the latest yields data of {{token}}/USDC pair: {}.", formatted_data)
+    let formatted_data = yields_data
+        .iter()
+        .map(|yield_data| {
+            format!(
+                "Token: {}, APY: {:.2}%, TVL: ${:.2}, Risk Score: {:.2}",
+                yield_data.token.name,
+                yield_data.apy * 100.0,
+                yield_data.tvl,
+                yield_data.risk_score
+            )
+        })
+        .collect::<Vec<String>>()
+        .join(", ");
+
+    format!(
+        "Here is the latest yields data of {{token}}/USDC pair: {}.",
+        formatted_data
+    )
 }

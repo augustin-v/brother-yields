@@ -1,6 +1,7 @@
 pub mod agent_tools;
 pub mod agents;
 pub mod backend;
+pub mod insights;
 pub mod market;
 pub mod math;
 pub mod tokens;

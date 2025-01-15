@@ -1,3 +1,4 @@
+use chrono::NaiveDateTime;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, convert::From, fmt::Debug};
@@ -61,7 +62,7 @@ pub struct ProtocolYield {
     pub tvl: f64,
     pub volume_24h: f64,
     pub risk_score: f64,
-    pub pool_type: PoolType
+    pub pool_type: PoolType,
 }
 
 #[derive(Deserialize, Serialize, JsonSchema)]
@@ -82,5 +83,16 @@ pub enum PoolType {
     #[default]
     Stable,
     Volatile,
-    Degen
+    Degen,
+}
+
+#[derive(Debug)]
+pub struct TwitterInsight {
+    pub tweet_text: String,
+    pub author: String,
+    pub timestamp: NaiveDateTime,
+    pub strategy_type: String,
+    pub protocol_mentioned: String,
+    pub sentiment: f64,
+    pub engagement_score: i32,
 }
