@@ -5,7 +5,6 @@ Project for the Starknet winter hackathon 2025!
 ## Quickstart
 ### First terminal
 ```bash
-cd backend-agent
 cp .env.example .env
 ```
 configure .env then
