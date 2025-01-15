@@ -2,10 +2,8 @@ import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from bs4 import BeautifulSoup
 import openai
 import psycopg2
-from datetime import datetime
 import time
 import json
 from openai import OpenAI
@@ -18,12 +16,12 @@ class StarknetDefiScraper:
         self.password = os.getenv("TWITTER_PASSWORD")
         self.search_queries = [
             "starknet defi strategy",
+            "starknet reward",
             "starknet yields", 
             "starknet defi protocols",
             "starknet liquidity",
             "starknet farming",
-            "starknet TVL"
-            "starknet yield guide"
+            "starknet yield guide",
             "starknet defi guide"
         ]
         self.openai = OpenAI(api_key=openai_key.strip())
