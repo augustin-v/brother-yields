@@ -1,8 +1,8 @@
 use crate::{agent_tools::yield_analyzer::AnalyzerTool, backend::Backend, types::ProtocolYield};
-use anyhow::{Error, Ok};
+
 use rig::{
     agent::{Agent, AgentBuilder},
-    completion::{Chat, CompletionModel, Prompt},
+    completion::{Chat, CompletionModel, Message, Prompt, PromptError},
     loaders::FileLoader,
 };
 
@@ -22,7 +22,7 @@ impl Tools {
 pub struct Navigator<M: CompletionModel> {
     navigator: Agent<M>,
     defiproman: Agent<M>,
-    pub _chat_history: Vec<rig::completion::Message>,
+    pub chat_history: Vec<rig::completion::Message>,
     tools: Tools,
 }
 
@@ -32,20 +32,38 @@ impl<M: CompletionModel> Navigator<M> {
             navigator: agent_build(nav_model.clone()).expect("Failed building navigator"),
             defiproman: super::lp_pro_man::proman_agent_build(defaigent_model, tools.clone())
                 .expect("Failed building defiproman"),
-            _chat_history: vec![],
+            chat_history: vec![],
             tools,
         }
     }
 
     pub async fn process_prompt(
-        &self,
+        &mut self,
         prompt: &str,
     ) -> Result<String, rig::completion::PromptError> {
+        self.chat_history.push(Message {
+            role: "user".to_string(),
+            content: prompt.to_string()
+        });
+        
         let refined_prompt = self.navigator.prompt(prompt).await?;
         println!("{refined_prompt}");
-
-        self.defiproman.prompt(&refined_prompt).await
+    
+        let response = self.defiproman
+        .chat(&refined_prompt, self.chat_history.clone())
+        .await
+        .map_err(|e| rig::completion::PromptError::CompletionError(rig::completion::CompletionError::ResponseError(e.to_string()))
+        )?;
+    
+        
+        self.chat_history.push(Message {
+            role: "assistant".to_string(),
+            content: response.clone()
+        });
+    
+        Ok(response)
     }
+    
 }
 
 impl<M: CompletionModel> Chat for Navigator<M> {
@@ -62,7 +80,7 @@ impl<M: CompletionModel> Chat for Navigator<M> {
     }
 }
 
-pub async fn launch<M: CompletionModel>(backend: &Backend<M>) -> Result<(), Error> {
+pub async fn launch<M: CompletionModel>(backend: &Backend<M>) -> Result<(), anyhow::Error> {
     let nav_agent = backend
         .agent_state
         .clone()
@@ -89,8 +107,7 @@ pub fn agent_build<M: CompletionModel>(model: M) -> Result<Agent<M>, anyhow::Err
     let agent = examples
         .fold(AgentBuilder::new(model), |builder, (path, content)| {
             builder.context(format!("Your agents knowledge {:?}:\n{}", path, content).as_str())
-        }).preamble("You are a navigator in the Brother Yield project, made for assisting the user with DeFi strategy optimization on Starknet. You have your own AI defi expert, called LiquidityProMan(LPM). So when user asks you a question you will be the middleman: refine the user prompt and use your refined version to prompt LPM. Keep your prompts shorter than 2 lines, start by 'brother defiproman {your_refined_prompt}'. ex: 'user:' 'hello' 'navigator': 'brother defiproman hello'. Be sure to rely the greetings properly.")
-        .build();
+        }).preamble("You are a navigator in the Brother Yield project, made for assisting the user with DeFi strategy optimization on Starknet. You have your own AI defi expert, called LiquidityProMan(LPM). So when user asks you a question you will be the middleman: refine the user prompt and use your refined version to prompt LPM. Keep your prompts shorter than 2 lines, start by 'brother defiproman {your_refined_prompt}'. ex: 'user:' 'hello' 'navigator': 'brother defiproman hello'. Be sure to rely the greetings properly.")        .build();
 
     Ok(agent)
 }
