@@ -1,11 +1,13 @@
 use agents::navigator::Tools;
 use backend::Backend;
 use dotenv::dotenv;
-use rig::{embeddings::EmbeddingsBuilder, providers::openai::TEXT_EMBEDDING_3_SMALL, vector_store::in_memory_store::InMemoryVectorStore};
-use types::YieldAnalyzer;
 use insights::get_insights_context;
+use rig::{
+    embeddings::EmbeddingsBuilder, providers::openai::TEXT_EMBEDDING_3_SMALL,
+    vector_store::in_memory_store::InMemoryVectorStore,
+};
+use types::YieldAnalyzer;
 use utils::defipro_get_instr;
-
 
 mod agent_tools;
 mod agents;
@@ -31,15 +33,19 @@ async fn main() {
 
     // Initiate agents, tools and backend
     let tools = Tools::new(yields_data.clone());
-    let (_, x_insight) = get_insights_context().await.expect("Failed getting twitter insights"); 
+    let (_, x_insight) = get_insights_context()
+        .await
+        .expect("Failed getting twitter insights");
 
     let nav_model = openai_client.completion_model("gpt-4o-mini");
 
     let defaigent_embd_model = openai_client.embedding_model(TEXT_EMBEDDING_3_SMALL);
     let embeddings = EmbeddingsBuilder::new(defaigent_embd_model.clone())
-        .documents(x_insight.clone()).expect("Failed embedding Vec<TwitterInsight>")
+        .documents(x_insight.clone())
+        .expect("Failed embedding Vec<TwitterInsight>")
         .build()
-        .await.expect("Failed building defaiproman");
+        .await
+        .expect("Failed building defaiproman");
 
     let vector_store = InMemoryVectorStore::from_documents(embeddings);
     let index = vector_store.index(defaigent_embd_model);

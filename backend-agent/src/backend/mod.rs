@@ -62,7 +62,11 @@ impl<M: CompletionModel + 'static> Backend<M> {
         tools: Tools,
     ) -> Result<(), anyhow::Error> {
         self.agent_state = Some(AgentState {
-            navigator: Arc::new(Mutex::new(Navigator::new(nav_model, defaigent_model, tools))),
+            navigator: Arc::new(Mutex::new(Navigator::new(
+                nav_model,
+                defaigent_model,
+                tools,
+            ))),
         });
 
         let cors = CorsLayer::new()
@@ -163,3 +167,5 @@ pub async fn yields_handler<M: CompletionModel>(
         }),
     )
 }
+
+pub async fn update_history_handler<M: CompletionModel>() {}

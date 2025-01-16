@@ -9,7 +9,6 @@ use super::navigator::Tools;
 pub fn proman_agent_build<M: CompletionModel>(
     model: AgentBuilder<M>,
     tool: Tools,
-
 ) -> Result<Agent<M>, anyhow::Error> {
     // Load knowledge
     let knowledge = FileLoader::with_glob("knowledge/*-lp.md")?
@@ -20,7 +19,7 @@ pub fn proman_agent_build<M: CompletionModel>(
     let agent = knowledge
         .fold(model, |builder, (path, content)| {
             builder.context(format!("DeFi protocols knowledge {:?}:\n{}.", path, content).as_str())
-        })//        .tool(tool.analyzer_tool)
+        }) //        .tool(tool.analyzer_tool)
         .build();
 
     Ok(agent)

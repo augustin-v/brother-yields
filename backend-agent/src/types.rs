@@ -1,8 +1,11 @@
 use chrono::NaiveDateTime;
+use rig::{
+    embeddings::{EmbedError, TextEmbedder},
+    Embed,
+};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, convert::From, fmt::Debug};
-use rig::{Embed, embeddings::{TextEmbedder, EmbedError}};
 
 #[derive(Debug, thiserror::Error)]
 #[error("Portfolio error: {0}")]
@@ -92,7 +95,8 @@ pub struct TwitterInsight {
     pub tweet_text: String,
     pub author: String,
     #[serde(serialize_with = "serialize_datetime")]
-    pub timestamp: NaiveDateTime, /// This is String in the error i just sent.
+    pub timestamp: NaiveDateTime,
+    /// This is String in the error i just sent.
     pub strategy_type: String,
     pub protocol_mentioned: String,
     pub sentiment: i32,
@@ -116,17 +120,14 @@ impl Embed for TwitterInsight {
             self.sentiment,
             self.engagement_score
         );
-        
+
         // Add the context to be embedded
         embedder.embed(context);
         Ok(())
     }
 }
 
-fn serialize_datetime<S>(
-    datetime: &NaiveDateTime,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
+fn serialize_datetime<S>(datetime: &NaiveDateTime, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
 {
@@ -137,7 +138,7 @@ where
 #[derive(Debug, Clone, Serialize)]
 pub struct DefiKnowledge {
     id: String,
-    content: String
+    content: String,
 }
 
 impl Embed for DefiKnowledge {

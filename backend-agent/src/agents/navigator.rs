@@ -43,27 +43,36 @@ impl<M: CompletionModel> Navigator<M> {
     ) -> Result<String, rig::completion::PromptError> {
         self.chat_history.push(Message {
             role: "user".to_string(),
-            content: prompt.to_string()
+            content: prompt.to_string(),
         });
-        
+
         let refined_prompt = self.navigator.prompt(prompt).await?;
         println!("{refined_prompt}");
-    
-        let response = self.defiproman
-        .chat(&refined_prompt, self.chat_history.clone())
-        .await
-        .map_err(|e| rig::completion::PromptError::CompletionError(rig::completion::CompletionError::ResponseError(e.to_string()))
-        )?;
-    
-        
+
+        let response = self
+            .defiproman
+            .chat(&refined_prompt, self.chat_history.clone())
+            .await
+            .map_err(|e| {
+                rig::completion::PromptError::CompletionError(
+                    rig::completion::CompletionError::ResponseError(e.to_string()),
+                )
+            })?;
+
         self.chat_history.push(Message {
             role: "assistant".to_string(),
-            content: response.clone()
+            content: response.clone(),
         });
-    
+
         Ok(response)
     }
-    
+
+    pub fn update_chat_history(&mut self, content: &str) {
+        self.chat_history.push(Message {
+            role: "system".to_string(),
+            content: content.to_string(),
+        });
+    }
 }
 
 impl<M: CompletionModel> Chat for Navigator<M> {
@@ -107,7 +116,11 @@ pub fn agent_build<M: CompletionModel>(model: M) -> Result<Agent<M>, anyhow::Err
     let agent = examples
         .fold(AgentBuilder::new(model), |builder, (path, content)| {
             builder.context(format!("Your agents knowledge {:?}:\n{}", path, content).as_str())
-        }).preamble("You are a navigator in the Brother Yield project, made for assisting the user with DeFi strategy optimization on Starknet. You have your own AI defi expert, called LiquidityProMan(LPM). So when user asks you a question you will be the middleman: refine the user prompt and use your refined version to prompt LPM. Keep your prompts shorter than 2 lines, start by 'brother defiproman {your_refined_prompt}'. ex: 'user:' 'hello' 'navigator': 'brother defiproman hello'. Be sure to rely the greetings properly.")        .build();
+        })
+        .preamble(
+            "You are a navigator in the Brother Yield project, made for assisting thproperly.",
+        )
+        .build();
 
     Ok(agent)
 }
