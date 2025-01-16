@@ -85,7 +85,7 @@ impl<M: CompletionModel + 'static> Backend<M> {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:5050")
             .await
             .expect("Listener failure");
-        info!("Listener started on 127.0.0.1:300");
+        info!("Listener started on 127.0.0.1:5050");
 
         self.is_active.store(true, Ordering::SeqCst);
         *self.listener_addr.write() = Some(Url::parse("http://127.0.0.1:5050/").unwrap());
