@@ -27,10 +27,10 @@ pub struct Navigator<M: CompletionModel> {
 }
 
 impl<M: CompletionModel> Navigator<M> {
-    pub fn new(model: M, tools: Tools, context: String) -> Self {
+    pub fn new(nav_model: M, defaigent_model: AgentBuilder<M>, tools: Tools) -> Self {
         Self {
-            navigator: agent_build(model.clone()).expect("Failed building navigator"),
-            defiproman: super::lp_pro_man::proman_agent_build(model, tools.clone(), context)
+            navigator: agent_build(nav_model.clone()).expect("Failed building navigator"),
+            defiproman: super::lp_pro_man::proman_agent_build(defaigent_model, tools.clone())
                 .expect("Failed building defiproman"),
             _chat_history: vec![],
             tools,

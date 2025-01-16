@@ -7,6 +7,7 @@ use axum::{
     Json, Router,
 };
 use parking_lot::RwLock;
+use rig::agent::AgentBuilder;
 use rig::completion::CompletionModel;
 use tower_http::cors::CorsLayer;
 
@@ -56,12 +57,12 @@ impl<M: CompletionModel + 'static> Backend<M> {
 
     pub async fn start(
         mut self,
-        model: M,
+        nav_model: M,
+        defaigent_model: AgentBuilder<M>,
         tools: Tools,
-        context: String,
     ) -> Result<(), anyhow::Error> {
         self.agent_state = Some(AgentState {
-            navigator: Arc::new(Mutex::new(Navigator::new(model, tools, context))),
+            navigator: Arc::new(Mutex::new(Navigator::new(nav_model, defaigent_model, tools))),
         });
 
         let cors = CorsLayer::new()

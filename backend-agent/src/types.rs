@@ -2,6 +2,7 @@ use chrono::NaiveDateTime;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, convert::From, fmt::Debug};
+use rig::{Embed, embeddings::{TextEmbedder, EmbedError}};
 
 #[derive(Debug, thiserror::Error)]
 #[error("Portfolio error: {0}")]
@@ -86,13 +87,63 @@ pub enum PoolType {
     Degen,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Eq, PartialEq)]
 pub struct TwitterInsight {
     pub tweet_text: String,
     pub author: String,
-    pub timestamp: NaiveDateTime,
+    #[serde(serialize_with = "serialize_datetime")]
+    pub timestamp: NaiveDateTime, /// This is String in the error i just sent.
     pub strategy_type: String,
     pub protocol_mentioned: String,
-    pub sentiment: f64,
+    pub sentiment: i32,
     pub engagement_score: i32,
+}
+
+impl Embed for TwitterInsight {
+    fn embed(&self, embedder: &mut TextEmbedder) -> Result<(), EmbedError> {
+        // Create a rich context string that combines all relevant fields
+        let context = format!(
+            "Strategy: {} \n\
+            Protocol: {} \n\
+            Tweet: {} \n\
+            Author: {} \n\
+            Sentiment: {} \n\
+            Engagement: {}",
+            self.strategy_type,
+            self.protocol_mentioned,
+            self.tweet_text,
+            self.author,
+            self.sentiment,
+            self.engagement_score
+        );
+        
+        // Add the context to be embedded
+        embedder.embed(context);
+        Ok(())
+    }
+}
+
+fn serialize_datetime<S>(
+    datetime: &NaiveDateTime,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    let formatted = datetime.format("%Y-%m-%d %H:%M:%S UTC").to_string();
+    serializer.serialize_str(&formatted)
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DefiKnowledge {
+    id: String,
+    content: String
+}
+
+impl Embed for DefiKnowledge {
+    fn embed(&self, embedder: &mut TextEmbedder) -> Result<(), EmbedError> {
+        // embed the content field
+        embedder.embed(self.content.clone());
+        Ok(())
+    }
 }

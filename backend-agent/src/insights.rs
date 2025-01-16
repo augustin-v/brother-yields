@@ -1,7 +1,7 @@
 use crate::types::TwitterInsight;
 use tokio_postgres::NoTls;
 
-pub async fn get_insights_context() -> Result<String, anyhow::Error> {
+pub async fn get_insights_context() -> Result<(String, Vec<TwitterInsight>), anyhow::Error> {
 
     let db_config = format!(
         "host={} user={} password={} dbname={} port={}",
@@ -30,21 +30,24 @@ pub async fn get_insights_context() -> Result<String, anyhow::Error> {
 
     // Convert rows to insights
     let x_insights: Vec<TwitterInsight> = rows
-        .iter()
-        .map(|row| TwitterInsight {
+    .iter()
+    .map(|row| {
+        let sentiment_float: f64 = row.get("sentiment");
+        TwitterInsight {
             tweet_text: row.get("tweet_text"),
             author: row.get("author"),
             timestamp: row.get("timestamp"),
             strategy_type: row.get("strategy_type"),
             protocol_mentioned: row.get("protocol_mentioned"),
-            sentiment: row.get("sentiment"),
+            sentiment: (sentiment_float * 100.0) as i32,  // Scale by 100 to preserve 2 decimal places
             engagement_score: row.get("engagement_score"),
-        })
-        .collect();
+        }
+    })
+    .collect();
 
     println!("Loaded {} insights from database", x_insights.len());
 
-    Ok(TwitterInsight::format_insights(&x_insights))
+    Ok((TwitterInsight::format_insights(&x_insights),x_insights)) 
 }
 
 impl TwitterInsight {
@@ -69,7 +72,7 @@ impl TwitterInsight {
         formatted.push_str(&format!("Total Insights: {}\n", insights.len()));
         
         // average sentiment
-        let avg_sentiment = insights.iter().map(|i| i.sentiment).sum::<f64>() / insights.len() as f64;
+        let avg_sentiment = insights.iter().map(|i| i.sentiment).sum::<i32>() / insights.len() as i32;
         formatted.push_str(&format!("Average Sentiment: {:.2}\n", avg_sentiment));
         
         //  total engagement

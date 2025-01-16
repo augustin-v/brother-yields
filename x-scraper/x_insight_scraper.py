@@ -122,7 +122,7 @@ class StarknetDefiScraper:
     def login(self, browser):
         print("Logging in to Twitter...")
         browser.get("https://twitter.com/i/flow/login")
-        time.sleep(3)
+        time.sleep(4)
 
         try:
             # Input username

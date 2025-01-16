@@ -7,6 +7,7 @@ edition = "2021"
 anyhow = "1.0.95"
 axum = { version = "0.8.1", features = ["macros"] }
 chrono = "0.4.39"
+const_format = "0.2.34"
 dotenv = "0.15.0"
 graphql_client = "0.14.0"
 graphql_client_cli = "0.14.0"
