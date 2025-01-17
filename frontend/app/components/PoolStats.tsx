@@ -5,9 +5,13 @@ import { useEffect, useState } from 'react';
 interface Token {
   name: string;
   address: string;
-  priceUSD: number;
+  priceUSD: Price;  // Changed from number to Price
 }
-
+interface Price {
+  integral: number;
+  fractional: number;
+  decimals: number;
+}
 interface PoolYield {
   token: Token;
   apy: number;
@@ -20,6 +24,10 @@ interface PoolYield {
 interface PoolStats {
   yields: PoolYield[];
 }
+
+const priceToNumber = (price: Price): number => {
+  return price.integral + (price.fractional / Math.pow(10, price.decimals));
+};
 
 export default function PoolStats() {
   const [poolStats, setPoolStats] = useState<PoolStats | null>(null);
@@ -79,7 +87,7 @@ export default function PoolStats() {
           <div className="flex justify-between items-center mb-2">
             <h3 className="text-lg font-bold">{pool.token.name}/USDC</h3>
             <span className="text-sm text-zinc-400">
-              ${pool.token.priceUSD.toFixed(2)}
+              ${priceToNumber(pool.token.priceUSD).toFixed(2)}
             </span>
           </div>
           

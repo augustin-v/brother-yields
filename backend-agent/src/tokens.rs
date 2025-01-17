@@ -1,4 +1,4 @@
-use crate::types::{PoolType, StringContractAddress};
+use crate::types::{PoolType, Price, StringContractAddress};
 use crate::{market::CoinMarketData, types::Token};
 use starknet::{
     core::types::{BlockId, BlockTag, Felt, FunctionCall},
@@ -60,12 +60,12 @@ pub async fn fetch_all_tokens() -> (Vec<Token>, Vec<CoinMarketData>) {
                         tokens.push(Token {
                             name: token_name.to_string(),
                             address: StringContractAddress::from(address.as_str()),
-                            price,
+                            price: Price::from_f64(price, 18),
                         });
                         tokens.push(Token {
                             name: token_name.to_string(),
                             address: StringContractAddress::from(address.as_str()),
-                            price,
+                            price: Price::from_f64(price, 18),
                         });
 
                         // Create market data for Standard pool
@@ -95,7 +95,7 @@ pub async fn fetch_all_tokens() -> (Vec<Token>, Vec<CoinMarketData>) {
                         tokens.push(Token {
                             name: token_name.to_string(),
                             address: StringContractAddress::from(address.as_str()),
-                            price,
+                            price: Price::from_f64(price, 18),
                         });
 
                         let market_data_entry = CoinMarketData::from_gecko_data(

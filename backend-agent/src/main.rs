@@ -32,7 +32,6 @@ async fn main() {
     let openai_client = rig::providers::openai::Client::new(&openai_api);
 
     // Initiate agents, tools and backend
-    let tools = Tools::new(yields_data.clone());
     let (_, x_insight) = get_insights_context()
         .await
         .expect("Failed getting twitter insights");
@@ -56,7 +55,8 @@ async fn main() {
         .preamble(&defipro_get_instr())
         .temperature(0.3);
 
-    let backend = Backend::new(yields_data);
+    let backend = Backend::new(yields_data.clone());
+    let tools = Tools::new(yields_data, backend.app_state.clone());
     let server_task = tokio::spawn(async move {
         backend
             .start(nav_model, defaigent_model, tools)

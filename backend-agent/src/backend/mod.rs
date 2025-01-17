@@ -1,5 +1,6 @@
 use crate::agents::navigator::{launch, Navigator, Tools};
-use crate::types::ProtocolYield;
+use crate::agents::AgentState;
+use crate::types::{ProtocolYield, Token};
 use axum::extract::State;
 use axum::{
     http::{header, Method, StatusCode},
@@ -9,15 +10,14 @@ use axum::{
 use parking_lot::RwLock;
 use rig::agent::AgentBuilder;
 use rig::completion::CompletionModel;
-use tower_http::cors::CorsLayer;
-
-use crate::agents::AgentState;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
 use tokio::sync::Mutex;
+use tower_http::cors::CorsLayer;
 use tracing::info;
 use url::Url;
 
@@ -25,8 +25,14 @@ use url::Url;
 pub struct Backend<M: CompletionModel> {
     pub is_active: Arc<AtomicBool>,
     pub listener_addr: Arc<RwLock<Option<Url>>>,
-    pub agent_state: Option<AgentState<M>>,
+    pub app_state: Arc<Mutex<AppState<M>>>,
     pub yields_data: Vec<ProtocolYield>,
+}
+
+#[derive(Clone)]
+pub struct AppState<M: CompletionModel> {
+    pub agent_state: Option<AgentState<M>>,
+    pub portfolio_data: Arc<RwLock<HashMap<String, HashMap<Token, f64>>>>,
 }
 
 #[derive(Serialize, Debug)]
@@ -50,18 +56,18 @@ impl<M: CompletionModel + 'static> Backend<M> {
         Self {
             is_active: Arc::new(AtomicBool::new(false)),
             listener_addr: Arc::new(RwLock::new(None)),
-            agent_state: None,
+            app_state: Arc::new(Mutex::new(AppState::new())),
             yields_data,
         }
     }
 
     pub async fn start(
-        mut self,
+        self,
         nav_model: M,
         defaigent_model: AgentBuilder<M>,
-        tools: Tools,
+        tools: Tools<M>,
     ) -> Result<(), anyhow::Error> {
-        self.agent_state = Some(AgentState {
+        self.app_state.lock().await.agent_state = Some(AgentState {
             navigator: Arc::new(Mutex::new(Navigator::new(
                 nav_model,
                 defaigent_model,
@@ -106,8 +112,23 @@ impl<M: CompletionModel + 'static> Backend<M> {
     }
 }
 
+impl<M: CompletionModel> AppState<M> {
+    pub fn new() -> Self {
+        Self {
+            agent_state: None,
+            portfolio_data: Arc::new(RwLock::new(HashMap::new())),
+        }
+    }
+
+    pub fn update_portfolio(&self, address: String, balances: HashMap<Token, f64>) {
+        let mut data = self.portfolio_data.write();
+        data.insert(address.clone(), balances);
+        info!("User {} portfolio updated", address);
+    }
+}
+
 /// Testing function
-pub async fn launch_handler<M: CompletionModel>(
+pub async fn launch_handler<M: CompletionModel + 'static>(
     State(backend): State<Backend<M>>,
 ) -> (StatusCode, Json<ApiResponse>) {
     match launch(&backend).await {
@@ -128,11 +149,14 @@ pub async fn launch_handler<M: CompletionModel>(
     }
 }
 
-pub async fn prompt_handler<M: CompletionModel>(
+pub async fn prompt_handler<M: CompletionModel + 'static>(
     State(backend): State<Backend<M>>,
     Json(request): Json<PromptRequest>,
 ) -> (StatusCode, Json<ApiResponse>) {
     let nav_agent = backend
+        .app_state
+        .lock()
+        .await
         .agent_state
         .clone()
         .expect("No agent available")
@@ -167,5 +191,3 @@ pub async fn yields_handler<M: CompletionModel>(
         }),
     )
 }
-
-pub async fn update_history_handler<M: CompletionModel>() {}

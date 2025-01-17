@@ -18,15 +18,15 @@ pub struct Asset {
     pub balance: f64,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, JsonSchema, Clone)]
+#[derive(Debug, Deserialize, Serialize, Default, JsonSchema, Clone, PartialEq, Eq, Hash)]
 pub struct Token {
     pub name: String,
     pub address: StringContractAddress,
     #[serde(rename = "priceUSD")]
-    pub price: f64,
+    pub price: Price,
 }
 
-#[derive(Debug, Deserialize, Serialize, JsonSchema, Clone, PartialEq, Default)]
+#[derive(Debug, Deserialize, Serialize, JsonSchema, Clone, PartialEq, Default, Eq, Hash)]
 pub struct StringContractAddress(pub String);
 
 impl StringContractAddress {
@@ -146,5 +146,36 @@ impl Embed for DefiKnowledge {
         // embed the content field
         embedder.embed(self.content.clone());
         Ok(())
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Default, JsonSchema, Clone, PartialEq, Eq, Hash)]
+pub struct Price {
+    integral: u64,
+    fractional: u64,
+    decimals: u8, // Store precision level (e.g., 6 for 6 decimal places)
+}
+
+impl Price {
+    pub fn new(integral: u64, fractional: u64, decimals: u8) -> Self {
+        Self {
+            integral,
+            fractional,
+            decimals,
+        }
+    }
+
+    pub fn from_f64(value: f64, decimals: u8) -> Self {
+        let multiplier = 10u64.pow(decimals as u32);
+        let total = (value * multiplier as f64) as u64;
+        Self {
+            integral: total / multiplier,
+            fractional: total % multiplier,
+            decimals,
+        }
+    }
+
+    pub fn to_f64(&self) -> f64 {
+        self.integral as f64 + (self.fractional as f64 / 10f64.powi(self.decimals as i32))
     }
 }
