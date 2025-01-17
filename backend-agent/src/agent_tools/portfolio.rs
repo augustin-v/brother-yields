@@ -148,9 +148,12 @@ impl<M: CompletionModel + 'static> Tool for PortfolioFetch<M> {
             let state = self.appstate.lock().await;
             info!("Got appstate lock");
             if let Some(agent) = state.agent_state.as_ref() {
-                info!("Found agent state");
+
+                info!("Found agent state"); //// LAST LOG DISPLAYED
+
                 // Get the chat_history Arc<Mutex> from inside Navigator
-                agent.navigator.lock().await.chat_history.clone()
+
+                agent.navigator.lock().await.chat_history.clone() //// DEADLOCK
             } else {
                 error!("No agent state found");
                 return Err(PortfolioError("No agent state found".to_string()));
