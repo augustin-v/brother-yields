@@ -2,17 +2,19 @@ use crate::{
     agent_tools::{portfolio::PortfolioFetch, yield_analyzer::AnalyzerTool},
     backend::{AppState, Backend},
     types::ProtocolYield,
+    backend::messaging::spawn_chat_history_manager
 };
+
 use anyhow::Ok;
 use rig::{
     agent::{Agent, AgentBuilder},
-    completion::{Chat, CompletionModel, Message, Prompt},
+    completion::{Chat, CompletionModel, Message, Prompt, PromptError, CompletionError},
     loaders::FileLoader,
 };
 use std::sync::Arc;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, mpsc, oneshot};
 use tracing::info;
-
+use crate::backend::messaging::{ChatHistoryCommand, ChatHistoryManager};
 #[derive(Clone)]
 pub struct Tools<M: CompletionModel> {
     pub _analyzer_tool: AnalyzerTool,
@@ -31,74 +33,110 @@ impl<M: CompletionModel> Tools<M> {
 pub struct Navigator<M: CompletionModel> {
     navigator: Agent<M>,
     defiproman: Agent<M>,
-    pub chat_history: Arc<Mutex<Vec<Message>>>,
+    pub chat_history_sender: mpsc::Sender<ChatHistoryCommand>,
     tools: Tools<M>,
 }
 
 impl<M: CompletionModel + 'static> Navigator<M> {
     pub fn new(nav_model: M, defaigent_model: AgentBuilder<M>, tools: Tools<M>) -> Self {
+        // Create the chat history manager
+        let (manager, receiver) = ChatHistoryManager::new();
+        
+        // Spawn the manager task
+        spawn_chat_history_manager(receiver);
+        
         Self {
             navigator: agent_build(nav_model.clone()).expect("Failed building navigator"),
             defiproman: super::lp_pro_man::proman_agent_build(defaigent_model, tools.clone())
                 .expect("Failed building defiproman"),
-            chat_history: Arc::new(Mutex::new(vec![])),
+            chat_history_sender: manager.get_sender(),
             tools,
         }
     }
 
-    pub async fn process_prompt(
-        &mut self,
-        prompt: &str,
-    ) -> Result<String, rig::completion::PromptError> {
-        self.chat_history.lock().await.push(Message {
-            role: "user".to_string(),
-            content: prompt.to_string(),
-        });
-
+    pub async fn process_prompt(&self, prompt: &str) -> Result<String, PromptError> {
+        // Add user message
+        self.chat_history_sender
+            .send(ChatHistoryCommand::AddMessage(Message {
+                role: "user".to_string(),
+                content: prompt.to_string(),
+            }))
+            .await
+            .map_err(|e| PromptError::CompletionError(
+                CompletionError::ResponseError(e.to_string())
+            ))?;
+    
+        // Get current history for AI
+        let (tx, rx) = oneshot::channel();
+        self.chat_history_sender
+            .send(ChatHistoryCommand::GetHistory(tx))
+            .await
+            .map_err(|e| PromptError::CompletionError(
+                CompletionError::ResponseError(e.to_string())
+            ))?;
+        
+        let history = rx.await.map_err(|e| PromptError::CompletionError(
+            CompletionError::ResponseError(e.to_string())
+        ))?;
+    
         let refined_prompt = self.navigator.prompt(prompt).await?;
         println!("{refined_prompt}");
-
+    
         let response = self
             .defiproman
-            .chat(&refined_prompt, self.chat_history.lock().await.clone())
+            .chat(&refined_prompt, history) // Use the history we got from the channel
             .await
             .map_err(|e| {
-                rig::completion::PromptError::CompletionError(
-                    rig::completion::CompletionError::ResponseError(e.to_string()),
+                PromptError::CompletionError(
+                    CompletionError::ResponseError(e.to_string())
                 )
             })?;
-
-        self.chat_history.lock().await.push(Message {
-            role: "assistant".to_string(),
-            content: response.clone(),
-        });
-
-        Ok(response).map_err(|e| {
-            rig::completion::PromptError::CompletionError(
-                rig::completion::CompletionError::ResponseError(e.to_string()),
-            )
-        })
+    
+        // Add assistant's response to history
+        self.chat_history_sender
+            .send(ChatHistoryCommand::AddMessage(Message {
+                role: "assistant".to_string(),
+                content: response.clone(),
+            }))
+            .await
+            .map_err(|e| PromptError::CompletionError(
+                CompletionError::ResponseError(e.to_string())
+            ))?;
+    
+        Ok(response).map_err(|e|PromptError::CompletionError(CompletionError::ResponseError(e.to_string())))
     }
+    
 
-    pub async fn _update_chat_history(&mut self, content: &str) -> Result<(), anyhow::Error> {
-        info!("Starting chat history update...");
-        // Add debug info about the current state
-        info!(
-            "Current chat history length: {}",
-            self.chat_history.lock().await.len()
-        );
-
-        self.chat_history.lock().await.push(Message {
-            role: "system".to_string(),
-            content: content.to_string(),
-        });
-
-        info!(
-            "Message pushed to chat history. New length: {}",
-            self.chat_history.lock().await.len()
-        );
-        Ok(())
+    pub async fn debug_print_history(&self) {
+        let (tx, rx) = oneshot::channel();
+        if let std::result::Result::Ok(_) = self.chat_history_sender.send(ChatHistoryCommand::GetHistory(tx)).await {
+            if let std::result::Result::Ok(history) = rx.await {
+                info!("Current chat history:");
+                for msg in history {
+                    info!("- [{:?}] {}", msg.role, msg.content);
+                }
+            }
+        }
     }
+//    pub async fn update_chat_history(&mut self, content: &str) -> Result<(), anyhow::Error> {
+//        info!("Starting chat history update...");
+//        // Add debug info about the current state
+//        info!(
+//            "Current chat history length: {}",
+//            self.chat_history.lock().await.len()
+//        );
+//
+//        self.chat_history.lock().await.push(Message {
+//            role: "system".to_string(),
+//            content: content.to_string(),
+//        });
+//
+//        info!(
+//            "Message pushed to chat history. New length: {}",
+//            self.chat_history.lock().await.len()
+//        );
+//        Ok(())
+//    }
 }
 
 impl<M: CompletionModel> Chat for Navigator<M> {

@@ -1,5 +1,5 @@
 use rig::{
-    completion::{CompletionModel, ToolDefinition},
+    completion::{CompletionModel, ToolDefinition, Message},
     tool::Tool,
 };
 use serde_json::json;
@@ -11,6 +11,7 @@ use starknet::{
         Provider, Url,
     },
 };
+use crate::backend::messaging::ChatHistoryCommand;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::mpsc;
@@ -37,13 +38,13 @@ pub struct PortfolioArgs {
 impl<M: CompletionModel + 'static> Tool for PortfolioFetch<M> {
     const NAME: &'static str = "mainnet_fetch_portfolio_balance";
     type Args = PortfolioArgs;
-    type Output = ();
+    type Output = String;
     type Error = PortfolioError;
 
     async fn definition(&self, _prompt: String) -> ToolDefinition {
         ToolDefinition {
             name: Self::NAME.to_string(),
-            description: "Retrieve mainnet portfolio using the user input wallet address. REQUIRES user wallet address".to_string(),
+            description: "Retrieve mainnet portfolio using the user input wallet address. REQUIRES user wallet address. <IMPORTANT>Only use if user has sent wallet address in its LAST message. If not, ask for it again or the world might fall apart... very important yes.<IMPORTANT/>".to_string(),
             parameters: json!({
                 "type": "object",
                 "properties": {
@@ -141,45 +142,58 @@ impl<M: CompletionModel + 'static> Tool for PortfolioFetch<M> {
                 .collect::<Vec<_>>()
                 .join("\n")
         );
+        info!("Formatted content: {}", content); // Add this line to verify the content
         info!("Updating state...");
-
-        // First get the chat history reference without holding the appstate lock
-        let chat_history = {
+    
+        // Get the chat history sender from navigator
+        let chat_sender = {
             let state = self.appstate.lock().await;
             info!("Got appstate lock");
-            if let Some(agent) = state.agent_state.as_ref() {
-
-                info!("Found agent state"); //// LAST LOG DISPLAYED
-
-                // Get the chat_history Arc<Mutex> from inside Navigator
-
-                agent.navigator.lock().await.chat_history.clone() //// DEADLOCK
-            } else {
-                error!("No agent state found");
-                return Err(PortfolioError("No agent state found".to_string()));
-            }
+            state.chat_sender.clone() // Get sender directly from AppState
         };
         info!("Released appstate lock");
-
-        // Then update chat history directly
+    
+        // Send message to update chat history
         info!("Attempting to update chat history...");
-        {
-            let mut history = chat_history.lock().await;
-            history.push(rig::completion::Message {
-                role: "system".to_string(),
-                content: content.to_string(),
-            });
-        }
-        info!("Chat history updated");
+        chat_sender
+            .send(ChatHistoryCommand::AddMessage(Message {
+                role: "user".to_string(),
+                content: format!(
+                    "[PORTFOLIO DATA - DO NOT FETCH AGAIN]\nI am sharing my current portfolio with you:\n{}\n[END PORTFOLIO DATA]",
+                    content),
+            }))
+            .await
+            .map_err(|e| PortfolioError(e.to_string()))?;
+        info!("Chat history update message sent");
+        let content_2 = format!(
+            "I've recorded your portfolio data. Your largest holding is {} tokens. I'll use this information for any strategy advice.",
+            token_balances.iter()
+                .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+                .map(|(token, amount)| format!("{} {}", amount, token.name))
+                .unwrap_or_default());
+        chat_sender
+    .send(ChatHistoryCommand::AddMessage(Message {
+        role: "assistant".to_string(),
+        content: format!(
+            "I've recorded your portfolio data. Your largest holding is {} tokens. And your whole portfolio is \n{}\nI'll use this information for any strategy advice.",
+            token_balances.iter()
+                .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+                .map(|(token, amount)| format!("{} {}", amount, token.name))
+                .unwrap_or_default()
+            , content
+        ),
+    }))
+    .await.map_err(|e| PortfolioError(e.to_string()))?;
 
-        // Finally update portfolio
+
+        // Update portfolio
         {
             let mut state = self.appstate.lock().await;
             state.update_portfolio(wallet_address.to_hex_string(), token_balances);
         }
         info!("Portfolio fetch completed successfully");
-
-        Ok(())
+    
+        Ok(content_2)
     }
 }
 
@@ -214,17 +228,24 @@ async fn fetch_balances_with_provider(
                 .try_into()
                 .expect("Failed converting Felt to u128");
             let adjusted_balance: f64 = balance as f64 / 10_f64.powf(decimals);
+            info!(
+                "Found non-zero balance for {}: {} tokens",
+                token_name, adjusted_balance
+            );
             let token_info = Token {
                 name: token_name,
                 address: crate::types::StringContractAddress(token_address.to_hex_string()),
                 price: Price::default(),
             };
             balances.insert(token_info, adjusted_balance);
+        } else {
+            info!("Zero or empty balance for token: {}", token_name);
         }
     }
     info!(
-        "Completed fetch_balances_with_provider for {} decimals",
-        decimals
+        "Completed fetch_balances_with_provider for {} decimals with {} tokens found",
+        decimals,
+        balances.len()
     );
 
     Ok(balances)

@@ -63,7 +63,9 @@ pub async fn _call_felt_2_usize_contract(
 pub fn defipro_get_instr() -> String {
     let current_date: chrono::DateTime<chrono::Local> = chrono::offset::Local::now();
 
-    format!("You are 'DEFIPROMAN', you are here to help the user. Use your knowledge of various Starknet DeFi protocols in the knowledge .md files injected in you. Keep your answers short concise and user-friendly. Always call the user 'Starknet brother' like a true starknet defi strategy expert answer with SPECIFIC strategies. You MUST keep your answers under 3 lines. IMPORTANT: Do not use outdated info (date now {}), do not talk about anything else than DeFi strategies on Starknet under ANY circumstance EXCEPT if user is just saying hello to him, be polite dont need to give advice in that case.",current_date)
+    format!("You are 'DEFIPROMAN', you are here to help the user. Use your knowledge of various Starknet DeFi protocols in the knowledge files injected in you. When you see portfolio information in the chat history (marked as system messages('role': 'system')), 
+actively incorporate this information into your responses when relevant. ALWAYS acknowledge and MAKE SURE TO reference 
+the user's token holdings when discussing their portfolio or related topics. You do NOT need to fetch the same wallet address twice. Just say that you've already fetched it if requested. Keep your answers short concise and user-friendly. Always call the user 'Starknet brother' like a true starknet defi strategy expert answer with SPECIFIC strategies. You MUST keep your answers under 3 lines. IMPORTANT: Do not use outdated info (date now {}), do not talk about anything else than DeFi strategies on Starknet under ANY circumstance EXCEPT if user is just saying hello to him, be polite dont need to give advice in that case.",current_date)
 }
 
 pub fn get_verified_tokens() -> (
@@ -141,7 +143,7 @@ pub fn get_verified_tokens() -> (
             "PAL".to_string(),
         ),
         (
-            felt!("0x0319111a5037cbec2b3e638cc34a3474e2d2608299f3e62866e9cc683208c610"),
+            felt!("0x319111a5037cbec2b3e638cc34a3474e2d2608299f3e62866e9cc683208c610"),
             "rETH".to_string(),
         ),
         (
@@ -149,7 +151,7 @@ pub fn get_verified_tokens() -> (
             "SPEPE".to_string(),
         ),
         (
-            felt!("0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d"),
+            felt!("0x4718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d"),
             "STRK".to_string(),
         ),
         (

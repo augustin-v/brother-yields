@@ -1,5 +1,4 @@
 use crate::agents::navigator::{launch, Navigator, Tools};
-use crate::agents::AgentState;
 use crate::types::{ProtocolYield, Token};
 use axum::extract::State;
 use axum::{
@@ -10,16 +9,20 @@ use axum::{
 use parking_lot::RwLock;
 use rig::agent::AgentBuilder;
 use rig::completion::CompletionModel;
+use tower_http::cors::CorsLayer;
+use crate::agents::AgentState;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
-use tokio::sync::Mutex;
-use tower_http::cors::CorsLayer;
+use tokio::sync::{Mutex, mpsc};
 use tracing::info;
 use url::Url;
+use messaging::{ChatHistoryCommand, ChatHistoryManager, spawn_chat_history_manager};
+
+pub mod messaging;
 
 #[derive(Clone)]
 pub struct Backend<M: CompletionModel> {
@@ -33,6 +36,7 @@ pub struct Backend<M: CompletionModel> {
 pub struct AppState<M: CompletionModel> {
     pub agent_state: Option<AgentState<M>>,
     pub portfolio_data: Arc<RwLock<HashMap<String, HashMap<Token, f64>>>>,
+    pub chat_sender: mpsc::Sender<ChatHistoryCommand>,
 }
 
 #[derive(Serialize, Debug)]
@@ -53,10 +57,13 @@ pub struct YieldsResponse {
 
 impl<M: CompletionModel + 'static> Backend<M> {
     pub fn new(yields_data: Vec<ProtocolYield>) -> Self {
+        let (manager, receiver) = ChatHistoryManager::new();
+        spawn_chat_history_manager(receiver);
+        
         Self {
             is_active: Arc::new(AtomicBool::new(false)),
             listener_addr: Arc::new(RwLock::new(None)),
-            app_state: Arc::new(Mutex::new(AppState::new())),
+            app_state: Arc::new(Mutex::new(AppState::new(manager.get_sender()))),
             yields_data,
         }
     }
@@ -113,13 +120,13 @@ impl<M: CompletionModel + 'static> Backend<M> {
 }
 
 impl<M: CompletionModel> AppState<M> {
-    pub fn new() -> Self {
+    pub fn new(chat_sender: mpsc::Sender<ChatHistoryCommand>) -> Self {
         Self {
             agent_state: None,
             portfolio_data: Arc::new(RwLock::new(HashMap::new())),
+            chat_sender,
         }
     }
-
     pub fn update_portfolio(&self, address: String, balances: HashMap<Token, f64>) {
         let mut data = self.portfolio_data.write();
         data.insert(address.clone(), balances);
@@ -128,7 +135,7 @@ impl<M: CompletionModel> AppState<M> {
 }
 
 /// Testing function
-pub async fn launch_handler<M: CompletionModel + 'static>(
+pub async fn launch_handler<M: CompletionModel +'static>(
     State(backend): State<Backend<M>>,
 ) -> (StatusCode, Json<ApiResponse>) {
     match launch(&backend).await {
@@ -149,7 +156,7 @@ pub async fn launch_handler<M: CompletionModel + 'static>(
     }
 }
 
-pub async fn prompt_handler<M: CompletionModel + 'static>(
+pub async fn prompt_handler<M: CompletionModel +'static>(
     State(backend): State<Backend<M>>,
     Json(request): Json<PromptRequest>,
 ) -> (StatusCode, Json<ApiResponse>) {
