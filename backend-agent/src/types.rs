@@ -166,11 +166,11 @@ impl Price {
     }
 
     pub fn from_f64(value: f64, decimals: u8) -> Self {
-        let multiplier = 10u64.pow(decimals as u32);
-        let total = (value * multiplier as f64) as u64;
+        let multiplier = 10_u128.pow(decimals as u32);
+        let total = (value * multiplier as f64) as u128;
         Self {
-            integral: total / multiplier,
-            fractional: total % multiplier,
+            integral: (total / multiplier) as u64,
+            fractional: (total % multiplier) as u64,
             decimals,
         }
     }
