@@ -15,6 +15,7 @@ class StarknetDefiScraper:
         self.username = os.getenv("TWITTER_USERNAME")
         self.password = os.getenv("TWITTER_PASSWORD")
         self.search_queries = [
+            "starknet apy"
             "starknet defi strategy",
             "starknet reward",
             "starknet yields", 
