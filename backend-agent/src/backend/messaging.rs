@@ -54,11 +54,17 @@ pub fn spawn_chat_history_manager(mut receiver: mpsc::Receiver<ChatHistoryComman
                     }
                 }
                 ChatHistoryCommand::GetHistory(session_id, respond_to) => {
-                    let history = sessions_lock
-                        .get(&session_id)
-                        .map(|h| h.clone())
-                        .unwrap_or_default();
-                    let _ = respond_to.send(history);
+                    // Check if session exists first
+                    match sessions_lock.get(&session_id) {
+                        Some(history) => {
+                            let _ = respond_to.send(history.clone());
+                        }
+                        None => {
+                            // Signal session not found by sending error
+                            let _ = respond_to.send(Vec::new());
+                            tracing::warn!("Attempted to get history for non-existent session: {}", session_id);
+                        }
+                    }
                 }
                 ChatHistoryCommand::CreateSession(session_id) => {
                     sessions_lock.insert(session_id.clone(), Vec::new());

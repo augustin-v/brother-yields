@@ -34,7 +34,6 @@ pub struct Navigator<M: CompletionModel> {
     navigator: Agent<M>,
     defiproman: Agent<M>,
     pub chat_history_sender: mpsc::Sender<ChatHistoryCommand>,
-    pub current_session: String,
     tools: Tools<M>,
 }
 
@@ -46,31 +45,30 @@ impl<M: CompletionModel + 'static> Navigator<M> {
             defiproman: super::lp_pro_man::proman_agent_build(defaigent_model, tools.clone())
                 .expect("Failed building defiproman"),
             chat_history_sender: chat_sender,
-            current_session: String::new(),
             tools,
         }
     }
 
-    pub async fn process_prompt(&self, prompt: &str) -> Result<String, PromptError> {
+    pub async fn process_prompt(&self, prompt: &str, current_session: String) -> Result<String, PromptError> {
         // Add user message
         self.chat_history_sender
             .send(ChatHistoryCommand::AddMessage(
-                self.current_session.clone(),
+                current_session.clone(),
                 Message {
                 role: "user".to_string(),
-                content: format!("<session_id>{}<session_id/> <prompt>{}<prompt/>",self.current_session.clone(), prompt.to_string()),
+                content: format!("<session_id>{}<session_id/> <prompt>{}<prompt/>",current_session.clone(), prompt.to_string()),
             }))
             .await
             .map_err(|e| PromptError::CompletionError(
                 CompletionError::ResponseError(e.to_string())
             ))?;
 
-        info!("Processing prompt from session {}", self.current_session.clone());
+        info!("Processing prompt from session {}", current_session.clone());
     
         // Get current history for AI
         let (tx, rx) = oneshot::channel();
         self.chat_history_sender
-            .send(ChatHistoryCommand::GetHistory(self.current_session.clone(), tx))
+            .send(ChatHistoryCommand::GetHistory(current_session.clone(), tx))
             .await
             .map_err(|e| PromptError::CompletionError(
                 CompletionError::ResponseError(e.to_string())
@@ -95,7 +93,7 @@ impl<M: CompletionModel + 'static> Navigator<M> {
     
         // Add assistant's response to history
         self.chat_history_sender
-            .send(ChatHistoryCommand::AddMessage(self.current_session.clone(),
+            .send(ChatHistoryCommand::AddMessage(current_session.clone(),
                 Message {
                 role: "assistant".to_string(),
                 content: response.clone(),
@@ -109,9 +107,9 @@ impl<M: CompletionModel + 'static> Navigator<M> {
     }
     
 
-    pub async fn debug_print_history(&self) {
+    pub async fn debug_print_history(&self, current_session: String) {
         let (tx, rx) = oneshot::channel();
-        if let std::result::Result::Ok(_) = self.chat_history_sender.send(ChatHistoryCommand::GetHistory(self.current_session.clone(), tx)).await {
+        if let std::result::Result::Ok(_) = self.chat_history_sender.send(ChatHistoryCommand::GetHistory(current_session.clone(), tx)).await {
             if let std::result::Result::Ok(history) = rx.await {
                 info!("Current chat history:");
                 for msg in history {
@@ -158,21 +156,21 @@ impl<M: CompletionModel> Chat for Navigator<M> {
 pub async fn launch<M: CompletionModel + 'static>(
     backend: &Backend<M>,
 ) -> Result<(), anyhow::Error> {
-    let nav_agent = backend
-        .app_state
-        .lock()
-        .await
-        .agent_state
-        .clone()
-        .expect("No agent available")
-        .navigator;
-    let result = nav_agent
-        .lock()
-        .await
-        .process_prompt("Hi from space.")
-        .await
-        .expect("Failed processing prompt");
-    println!("GOOD,{}", result);
+//    let nav_agent = backend
+//        .app_state
+//        .lock()
+//        .await
+//        .agent_state
+//        .clone()
+//        .expect("No agent available")
+//        .navigator;
+//    let result = nav_agent
+//        .lock()
+//        .await
+//        .process_prompt("Hi from space.")
+//        .await
+//        .expect("Failed processing prompt");
+    println!("GOOD," );
 
     Ok(())
 }

@@ -50,6 +50,12 @@ pub struct ApiResponse {
 #[derive(Deserialize)]
 pub struct PromptRequest {
     prompt: String,
+    session_id: String
+}
+
+#[derive(Deserialize)]
+pub struct ValidateSessionRequest {
+    session_id: String,
 }
 
 #[derive(Serialize)]
@@ -101,6 +107,7 @@ impl<M: CompletionModel + 'static> Backend<M> {
 
         let app = Router::new()
             .route("/init-session", get(init_session_handler))
+            .route("/validate-session", post(validate_session_handler)) // Add this line
             .route("/launch", post(launch_handler))
             .route("/prompt", post(prompt_handler))
             .route("/yields", get(yields_handler))
@@ -180,7 +187,7 @@ pub async fn prompt_handler<M: CompletionModel + 'static>(
         .navigator;
 
     info!("appstate locked nav locked");
-    let byebye = match nav_agent.lock().await.process_prompt(&request.prompt).await {
+    let byebye = match nav_agent.lock().await.process_prompt(&request.prompt, request.session_id).await {
         Ok(response) => (
             StatusCode::OK,
             Json(ApiResponse {
@@ -217,12 +224,9 @@ pub async fn init_session_handler<M: CompletionModel + 'static>(
     info!("init session");
     let session_id = uuid::Uuid::new_v4().to_string();
     
-    let (chat_sender, nav_agent) = {
+    let chat_sender  = {
         let state = backend.app_state.lock().await;
-        (
-            state.chat_sender.clone(),
-            state.agent_state.clone().expect("No agent available").navigator
-        )
+            state.chat_sender.clone()
     };
 
     // Create new session
@@ -238,16 +242,50 @@ pub async fn init_session_handler<M: CompletionModel + 'static>(
     
     // Wait for session to be available
     rx.await.expect("Failed to confirm session creation");
-
-    // Set session in navigator
-    {
-        let mut navigator = nav_agent.lock().await;
-        navigator.current_session = session_id.clone();
-    }
     
     info!("created session: {}", session_id);
     (StatusCode::OK, Json(ApiResponse {
         status: "success".to_string(),
         message: session_id,
     }))
+}
+
+pub async fn validate_session_handler<M: CompletionModel + 'static>(
+    State(backend): State<Backend<M>>,
+    Json(request): Json<ValidateSessionRequest>,
+) -> (StatusCode, Json<ApiResponse>) {
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    
+    let chat_sender = {
+        let state = backend.app_state.lock().await;
+        state.chat_sender.clone()
+    };
+
+    match chat_sender.send(ChatHistoryCommand::GetHistory(request.session_id.clone(), tx)).await {
+        Ok(_) => {
+            match rx.await {
+                Ok(history) if !history.is_empty() => (
+                    StatusCode::OK,
+                    Json(ApiResponse {
+                        status: "success".to_string(),
+                        message: "Session is valid".to_string(),
+                    })
+                ),
+                _ => (
+                    StatusCode::NOT_FOUND,
+                    Json(ApiResponse {
+                        status: "error".to_string(),
+                        message: "Session not found or invalid".to_string(),
+                    })
+                )
+            }
+        },
+        Err(_) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiResponse {
+                status: "error".to_string(),
+                message: "Failed to validate session".to_string(),
+            })
+        )
+    }
 }

@@ -9,26 +9,54 @@ export default function Home() {
   const [prompt, setPrompt] = useState('');
   const [messages, setMessages] = useState<Array<{content: string, isUser: boolean}>>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const initSession = async () => {
+    try {
+      const existingSessionId = localStorage.getItem('sessionId');
+      
+      if (existingSessionId) {
+        // Validate existing session
+        const validateRes = await fetch('http://localhost:5050/validate-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ session_id: existingSessionId }),
+        });
+        
+        const validateData = await validateRes.json();
+        if (validateRes.ok && validateData.status === 'success') {
+          setSessionId(existingSessionId);
+          return;
+        }
+        
+        // If validation fails, remove invalid session
+        localStorage.removeItem('sessionId');
+      }
+      
+      // Create new session
+      const res = await fetch('http://localhost:5050/init-session');
+      const data = await res.json();
+      
+      if (data.status === 'success') {
+        localStorage.setItem('sessionId', data.message);
+        setSessionId(data.message);
+      }
+    } catch (error) {
+      console.error('Failed to initialize session:', error);
+      localStorage.removeItem('sessionId');
+    }
+  };
 
   useEffect(() => {
-    const initSession = async () => {
-      try {
-        const res = await fetch('http://localhost:5050/init-session');
-        const data = await res.json();
-        if (data.status === 'success') {
-          setSessionId(data.message);
-        }
-      } catch (error) {
-        console.error('Failed to initialize session:', error);
-      }
-    };
-
     initSession();
   }, []);
 
   const handleSubmit = async () => {
-    if (!prompt.trim() || !sessionId) return;
+    if (!prompt.trim() || !sessionId || isLoading) return;
     
+    setIsLoading(true);
     setMessages(prev => [...prev, { content: prompt, isUser: true }]);
     setPrompt('');
 
@@ -40,21 +68,41 @@ export default function Home() {
         },
         body: JSON.stringify({ 
           prompt,
-          sessionId 
+          session_id: sessionId 
         }),
       });
       
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned non-JSON response');
+      }
+
       const data = await res.json();
       if (data.status === 'success') {
         setMessages(prev => [...prev, { 
           content: data.message.replace(/^"|"$/g, ''), 
           isUser: false 
         }]);
+      } else {
+        // Handle session invalidation
+        if (data.message.includes('Session not found')) {
+          localStorage.removeItem('sessionId');
+          await initSession(); // Re-initialize session instead of page reload
+        }
       }
     } catch (error) {
       console.error('Error:', error);
+      setMessages(prev => [...prev, { 
+        content: 'Sorry, something went wrong. Please try again.', 
+        isUser: false 
+      }]);
+      // Try to reinitialize session on error
+      await initSession();
+    } finally {
+      setIsLoading(false);
     }
   };
+  
 
   return (
     <div className="relative flex h-screen overflow-hidden">
