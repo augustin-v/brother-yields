@@ -33,6 +33,7 @@ pub struct PortfolioFetch<M: CompletionModel> {
 #[derive(serde::Deserialize)]
 pub struct PortfolioArgs {
     wallet_address: Felt,
+    session_id: String,
 }
 
 impl<M: CompletionModel + 'static> Tool for PortfolioFetch<M> {
@@ -51,6 +52,10 @@ impl<M: CompletionModel + 'static> Tool for PortfolioFetch<M> {
                     "wallet_address": {
                         "type": "string",
                         "description": "The Starknet wallet address to fetch the portfolio for"
+                    },
+                    "session_id": {
+                        "type": "string",
+                        "description": "User current session id. SAVED AS A 'SYSTEM' message in the beginning of the chat history THIS IS VERY IMPORTANT!"
                     }
                 },
                 "required": ["wallet_address"]
@@ -152,11 +157,14 @@ impl<M: CompletionModel + 'static> Tool for PortfolioFetch<M> {
             state.chat_sender.clone() // Get sender directly from AppState
         };
         info!("Released appstate lock");
+        
     
         // Send message to update chat history
-        info!("Attempting to update chat history...");
+        info!("Attempting to update chat history..."); //// deadlock here
         chat_sender
-            .send(ChatHistoryCommand::AddMessage(Message {
+            .send(ChatHistoryCommand::AddMessage(
+                args.session_id.clone(),
+                Message {
                 role: "user".to_string(),
                 content: format!(
                     "[PORTFOLIO DATA - DO NOT FETCH AGAIN]\nI am sharing my current portfolio with you:\n{}\n[END PORTFOLIO DATA]",
@@ -171,8 +179,15 @@ impl<M: CompletionModel + 'static> Tool for PortfolioFetch<M> {
                 .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
                 .map(|(token, amount)| format!("{} {}", amount, token.name))
                 .unwrap_or_default());
+        
+
+  
+
+
         chat_sender
-    .send(ChatHistoryCommand::AddMessage(Message {
+    .send(ChatHistoryCommand::AddMessage(
+            args.session_id, ///// deadlock in here!!!!
+        Message {
         role: "assistant".to_string(),
         content: format!(
             "I've recorded your portfolio data. Your largest holding is {} tokens. And your whole portfolio is \n{}\nI'll use this information for any strategy advice.",
@@ -184,12 +199,13 @@ impl<M: CompletionModel + 'static> Tool for PortfolioFetch<M> {
         ),
     }))
     .await.map_err(|e| PortfolioError(e.to_string()))?;
-
-
+    info!("sccessfully sent");
         // Update portfolio
         {
-            let mut state = self.appstate.lock().await;
+            info!("updating portfolio");
+            let state = self.appstate.lock().await;
             state.update_portfolio(wallet_address.to_hex_string(), token_balances);
+            info!("appstate lock dropped");
         }
         info!("Portfolio fetch completed successfully");
     
@@ -238,8 +254,6 @@ async fn fetch_balances_with_provider(
                 price: Price::default(),
             };
             balances.insert(token_info, adjusted_balance);
-        } else {
-            info!("Zero or empty balance for token: {}", token_name);
         }
     }
     info!(

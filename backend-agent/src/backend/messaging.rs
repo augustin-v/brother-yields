@@ -1,22 +1,29 @@
 use rig::completion::Message;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, oneshot, Mutex};
 use tracing::info;
+use std::collections::HashMap;
+use std::sync::Arc;
 pub struct ChatHistoryManager {
-    pub history: Vec<Message>,
+    pub sessions: HashMap<String, Vec<Message>>,
     pub sender: mpsc::Sender<ChatHistoryCommand>,
+    pub message_limit: usize
 }
 
+
 pub enum ChatHistoryCommand {
-    AddMessage(Message),
-    GetHistory(oneshot::Sender<Vec<Message>>),
+    AddMessage(String, Message),
+    GetHistory(String, oneshot::Sender<Vec<Message>>),
+    CreateSession(String),
+    DeleteSession(String),
 }
 
 impl ChatHistoryManager {
     pub fn new() -> (Self, mpsc::Receiver<ChatHistoryCommand>) {
         let (sender, receiver) = mpsc::channel(100);
         (Self {
-            history: Vec::new(),
+            sessions: HashMap::new(),
             sender,
+            message_limit: 5,
         }, receiver)
     }
 
@@ -25,20 +32,39 @@ impl ChatHistoryManager {
     }
 }
 
-pub fn spawn_chat_history_manager(mut receiver: mpsc::Receiver<ChatHistoryCommand>) {
+pub fn spawn_chat_history_manager(mut receiver: mpsc::Receiver<ChatHistoryCommand>, sessions: Arc<Mutex<HashMap<String, Vec<Message>>>>) {
+    let message_limit = 5;
+
     tokio::spawn(async move {
-        let mut history = Vec::new();
         info!("Chat history manager started");
         while let Some(cmd) = receiver.recv().await {
+            let mut sessions_lock = sessions.lock().await;
             match cmd {
-                ChatHistoryCommand::AddMessage(msg) => {
-                    info!("Adding message to history: {:?}", msg);
-                    history.push(msg);
-                    info!("Current history length: {}", history.len());
+                ChatHistoryCommand::AddMessage(session_id, msg) => {
+                    info!("Adding message to session {}", session_id);
+                    info!("Current sessions: {:?}", sessions_lock.keys().collect::<Vec<_>>());
+                    if let Some(history) = sessions_lock.get_mut(&session_id) {
+                        history.push(msg);
+                        info!("Msg added to session: {}, history length: {}", session_id, history.len());
+                        if history.len() > message_limit {
+                            history.remove(0);
+                        }
+                    } else {
+                        tracing::warn!("Attempted to add message to non-existent session: {}", session_id);
+                    }
                 }
-                ChatHistoryCommand::GetHistory(respond_to) => {
-                    info!("Getting history, current length: {}", history.len());
-                    let _ = respond_to.send(history.clone());
+                ChatHistoryCommand::GetHistory(session_id, respond_to) => {
+                    let history = sessions_lock
+                        .get(&session_id)
+                        .map(|h| h.clone())
+                        .unwrap_or_default();
+                    let _ = respond_to.send(history);
+                }
+                ChatHistoryCommand::CreateSession(session_id) => {
+                    sessions_lock.insert(session_id.clone(), Vec::new());
+                }
+                ChatHistoryCommand::DeleteSession(session_id) => {
+                    sessions_lock.remove(&session_id);
                 }
             }
         }

@@ -8,11 +8,13 @@ use axum::{
 };
 use parking_lot::RwLock;
 use rig::agent::AgentBuilder;
-use rig::completion::CompletionModel;
+use rig::completion::{CompletionModel, Message};
+use tokio::sync::mpsc::Sender;
 use tower_http::cors::CorsLayer;
 use crate::agents::AgentState;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::mpsc::Receiver;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
@@ -56,9 +58,7 @@ pub struct YieldsResponse {
 }
 
 impl<M: CompletionModel + 'static> Backend<M> {
-    pub fn new(yields_data: Vec<ProtocolYield>) -> Self {
-        let (manager, receiver) = ChatHistoryManager::new();
-        spawn_chat_history_manager(receiver);
+    pub fn new(yields_data: Vec<ProtocolYield>, manager: ChatHistoryManager) -> Self {
         
         Self {
             is_active: Arc::new(AtomicBool::new(false)),
@@ -73,12 +73,19 @@ impl<M: CompletionModel + 'static> Backend<M> {
         nav_model: M,
         defaigent_model: AgentBuilder<M>,
         tools: Tools<M>,
+        receiver: mpsc::Receiver<ChatHistoryCommand>,
     ) -> Result<(), anyhow::Error> {
+        let sessions = Arc::new(Mutex::new(HashMap::<String, Vec<Message>>::new()));
+        spawn_chat_history_manager(receiver, sessions.clone());
+        info!("getting sender...");
+        let chat_sender = {self.app_state.lock().await.chat_sender.clone()};
+        info!("got sender");
         self.app_state.lock().await.agent_state = Some(AgentState {
             navigator: Arc::new(Mutex::new(Navigator::new(
                 nav_model,
                 defaigent_model,
                 tools,
+                chat_sender,
             ))),
         });
 
@@ -93,6 +100,7 @@ impl<M: CompletionModel + 'static> Backend<M> {
             .allow_credentials(true);
 
         let app = Router::new()
+            .route("/init-session", get(init_session_handler))
             .route("/launch", post(launch_handler))
             .route("/prompt", post(prompt_handler))
             .route("/yields", get(yields_handler))
@@ -156,10 +164,12 @@ pub async fn launch_handler<M: CompletionModel +'static>(
     }
 }
 
-pub async fn prompt_handler<M: CompletionModel +'static>(
+pub async fn prompt_handler<M: CompletionModel + 'static>(
     State(backend): State<Backend<M>>,
     Json(request): Json<PromptRequest>,
 ) -> (StatusCode, Json<ApiResponse>) {
+    info!("received call");
+    
     let nav_agent = backend
         .app_state
         .lock()
@@ -169,6 +179,7 @@ pub async fn prompt_handler<M: CompletionModel +'static>(
         .expect("No agent available")
         .navigator;
 
+    info!("appstate locked nav locked");
     let byebye = match nav_agent.lock().await.process_prompt(&request.prompt).await {
         Ok(response) => (
             StatusCode::OK,
@@ -197,4 +208,46 @@ pub async fn yields_handler<M: CompletionModel>(
             yields: backend.yields_data,
         }),
     )
+}
+
+
+pub async fn init_session_handler<M: CompletionModel + 'static>(
+    State(backend): State<Backend<M>>,
+) -> (StatusCode, Json<ApiResponse>) {
+    info!("init session");
+    let session_id = uuid::Uuid::new_v4().to_string();
+    
+    let (chat_sender, nav_agent) = {
+        let state = backend.app_state.lock().await;
+        (
+            state.chat_sender.clone(),
+            state.agent_state.clone().expect("No agent available").navigator
+        )
+    };
+
+    // Create new session
+    chat_sender.send(ChatHistoryCommand::CreateSession(session_id.clone()))
+        .await
+        .expect("Failed creating session");
+    
+    // Add confirmation channel
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    chat_sender.send(ChatHistoryCommand::GetHistory(session_id.clone(), tx))
+        .await
+        .expect("Failed to verify session");
+    
+    // Wait for session to be available
+    rx.await.expect("Failed to confirm session creation");
+
+    // Set session in navigator
+    {
+        let mut navigator = nav_agent.lock().await;
+        navigator.current_session = session_id.clone();
+    }
+    
+    info!("created session: {}", session_id);
+    (StatusCode::OK, Json(ApiResponse {
+        status: "success".to_string(),
+        message: session_id,
+    }))
 }

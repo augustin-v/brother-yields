@@ -8,6 +8,7 @@ use rig::{
 };
 use types::YieldAnalyzer;
 use utils::defipro_get_instr;
+use crate::backend::messaging::ChatHistoryManager;
 
 mod agent_tools;
 mod agents;
@@ -55,11 +56,14 @@ async fn main() {
         .preamble(&defipro_get_instr())
         .temperature(0.3);
 
-    let backend = Backend::new(yields_data.clone());
+    let (manager, receiver) = ChatHistoryManager::new();
+
+
+    let backend = Backend::new(yields_data.clone(), manager);
     let tools = Tools::new(yields_data, backend.app_state.clone());
     let server_task = tokio::spawn(async move {
         backend
-            .start(nav_model, defaigent_model, tools)
+            .start(nav_model, defaigent_model, tools, receiver)
             .await
             .expect("didnt start")
     });

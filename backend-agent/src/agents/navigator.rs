@@ -12,7 +12,7 @@ use rig::{
     loaders::FileLoader,
 };
 use std::sync::Arc;
-use tokio::sync::{Mutex, mpsc, oneshot};
+use tokio::sync::{mpsc::{self, Sender}, oneshot, Mutex};
 use tracing::info;
 use crate::backend::messaging::{ChatHistoryCommand, ChatHistoryManager};
 #[derive(Clone)]
@@ -34,22 +34,19 @@ pub struct Navigator<M: CompletionModel> {
     navigator: Agent<M>,
     defiproman: Agent<M>,
     pub chat_history_sender: mpsc::Sender<ChatHistoryCommand>,
+    pub current_session: String,
     tools: Tools<M>,
 }
 
 impl<M: CompletionModel + 'static> Navigator<M> {
-    pub fn new(nav_model: M, defaigent_model: AgentBuilder<M>, tools: Tools<M>) -> Self {
-        // Create the chat history manager
-        let (manager, receiver) = ChatHistoryManager::new();
-        
-        // Spawn the manager task
-        spawn_chat_history_manager(receiver);
-        
+    pub fn new(nav_model: M, defaigent_model: AgentBuilder<M>, tools: Tools<M>, chat_sender: Sender<ChatHistoryCommand>) -> Self {
+
         Self {
             navigator: agent_build(nav_model.clone()).expect("Failed building navigator"),
             defiproman: super::lp_pro_man::proman_agent_build(defaigent_model, tools.clone())
                 .expect("Failed building defiproman"),
-            chat_history_sender: manager.get_sender(),
+            chat_history_sender: chat_sender,
+            current_session: String::new(),
             tools,
         }
     }
@@ -57,19 +54,23 @@ impl<M: CompletionModel + 'static> Navigator<M> {
     pub async fn process_prompt(&self, prompt: &str) -> Result<String, PromptError> {
         // Add user message
         self.chat_history_sender
-            .send(ChatHistoryCommand::AddMessage(Message {
+            .send(ChatHistoryCommand::AddMessage(
+                self.current_session.clone(),
+                Message {
                 role: "user".to_string(),
-                content: prompt.to_string(),
+                content: format!("<session_id>{}<session_id/> <prompt>{}<prompt/>",self.current_session.clone(), prompt.to_string()),
             }))
             .await
             .map_err(|e| PromptError::CompletionError(
                 CompletionError::ResponseError(e.to_string())
             ))?;
+
+        info!("Processing prompt from session {}", self.current_session.clone());
     
         // Get current history for AI
         let (tx, rx) = oneshot::channel();
         self.chat_history_sender
-            .send(ChatHistoryCommand::GetHistory(tx))
+            .send(ChatHistoryCommand::GetHistory(self.current_session.clone(), tx))
             .await
             .map_err(|e| PromptError::CompletionError(
                 CompletionError::ResponseError(e.to_string())
@@ -94,7 +95,8 @@ impl<M: CompletionModel + 'static> Navigator<M> {
     
         // Add assistant's response to history
         self.chat_history_sender
-            .send(ChatHistoryCommand::AddMessage(Message {
+            .send(ChatHistoryCommand::AddMessage(self.current_session.clone(),
+                Message {
                 role: "assistant".to_string(),
                 content: response.clone(),
             }))
@@ -109,7 +111,7 @@ impl<M: CompletionModel + 'static> Navigator<M> {
 
     pub async fn debug_print_history(&self) {
         let (tx, rx) = oneshot::channel();
-        if let std::result::Result::Ok(_) = self.chat_history_sender.send(ChatHistoryCommand::GetHistory(tx)).await {
+        if let std::result::Result::Ok(_) = self.chat_history_sender.send(ChatHistoryCommand::GetHistory(self.current_session.clone(), tx)).await {
             if let std::result::Result::Ok(history) = rx.await {
                 info!("Current chat history:");
                 for msg in history {
