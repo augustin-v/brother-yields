@@ -28,6 +28,5 @@ curl -X POST http://localhost:5050/prompt \
 ```
 Both should return a success message with the returned prompt inside
 
-### utils
-
-Convert felt to usize contract:[0x0638ff764ddd96be61cc35eb6cc7da3702790c4056c3fa976e0931441d33ef1e](https://sepolia.voyager.online/contract/0x0638ff764ddd96be61cc35eb6cc7da3702790c4056c3fa976e0931441d33ef1e#writeContract)
+### contract:
+[0x03a4a729f942c231a9c95a25b5d9624fb1ae93e9db7ec98449e1ddff12437f38](https://sepolia.voyager.online/contract/0x03a4a729f942c231a9c95a25b5d9624fb1ae93e9db7ec98449e1ddff12437f38)
