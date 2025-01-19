@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import ParticlesBackground from "./components/ParticlesBackground";
 import PoolStats from './components/PoolStats';
@@ -8,9 +8,26 @@ import PoolStats from './components/PoolStats';
 export default function Home() {
   const [prompt, setPrompt] = useState('');
   const [messages, setMessages] = useState<Array<{content: string, isUser: boolean}>>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const initSession = async () => {
+      try {
+        const res = await fetch('http://localhost:5050/init-session');
+        const data = await res.json();
+        if (data.status === 'success') {
+          setSessionId(data.message);
+        }
+      } catch (error) {
+        console.error('Failed to initialize session:', error);
+      }
+    };
+
+    initSession();
+  }, []);
 
   const handleSubmit = async () => {
-    if (!prompt.trim()) return;
+    if (!prompt.trim() || !sessionId) return;
     
     setMessages(prev => [...prev, { content: prompt, isUser: true }]);
     setPrompt('');
@@ -21,7 +38,10 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ 
+          prompt,
+          sessionId 
+        }),
       });
       
       const data = await res.json();
