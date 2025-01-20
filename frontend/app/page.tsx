@@ -17,6 +17,9 @@ export default function Home() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const API_URL = 'https://brother-yields.onrender.com';
+
+
   const initSession = async () => {
     if (!address) return;
     try {
@@ -25,7 +28,7 @@ export default function Home() {
         
         if (existingSessionId) {
             console.log("Found existing session:", existingSessionId);
-            const validateRes = await fetch('http://localhost:5050/validate-session', {
+            const validateRes = await fetch(`${API_URL}/validate-session`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -42,7 +45,7 @@ export default function Home() {
             localStorage.removeItem('sessionId');
         }
         
-        const res = await fetch('http://localhost:5050/init-session');
+        const res = await fetch(`${API_URL}/init-session`);
         if (!res.ok) {
             throw new Error(`Session initialization failed: ${res.status}`);
         }
@@ -74,7 +77,7 @@ export default function Home() {
     setPrompt('');
 
     try {
-      const res = await fetch('http://localhost:5050/prompt', {
+      const res = await fetch(`${API_URL}/prompt`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
