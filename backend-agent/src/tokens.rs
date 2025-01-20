@@ -21,7 +21,7 @@ const CHAIN_ID: &str = "starknet";
 
 // vec1[x] related to vec2[x] and so on (vec2[x] countains Market Data about vec1[x])
 pub async fn fetch_all_tokens() -> (Vec<Token>, Vec<CoinMarketData>) {
-    let api_key = std::env::var("COINGECKO_API_KEY").expect("COINGECKO_API_KEY not set");
+    let api_key = std::env::var("COINGECKO_API_KEY").expect("COINGECKO_API_KEY must be set in environment");
     let mut tokens = Vec::new();
     let mut market_data = Vec::new();
     let client = reqwest::Client::new();

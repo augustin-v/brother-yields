@@ -9,6 +9,8 @@ use rig::{
 use types::YieldAnalyzer;
 use utils::defipro_get_instr;
 use crate::backend::messaging::ChatHistoryManager;
+use std::env;
+
 
 mod agent_tools;
 mod agents;
@@ -23,9 +25,9 @@ mod utils;
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt().init();
-    dotenv().expect("failed to load .env");
+    dotenv().ok();
 
-    let openai_api = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY undefined in .env");
+    let openai_api = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY must be set in environment");
     let yields_data = YieldAnalyzer::get_yields_data()
         .await
         .expect("no yield data");

@@ -17,10 +17,10 @@ use starknet::{
 pub async fn _call_felt_2_usize_contract(
     value: Felt,
 ) -> anyhow::Result<InvokeTransactionResult, Error> {
-    let sepolia_api_key =
-        std::env::var("SEPOLIA_PRIVATE_KEY").expect("SEPOLIA_PRIVATE_KEY not set in .env");
-    let sepolia_account_add =
-        std::env::var("SEPOLIA_ACCOUNT_ADDRESS").expect("SEPOLIA_ACCOUNT_ADDRESS not set in .env");
+    let sepolia_api_key = std::env::var("SEPOLIA_PRIVATE_KEY")
+        .expect("SEPOLIA_PRIVATE_KEY must be set in environment");
+    let sepolia_account_add = std::env::var("SEPOLIA_ACCOUNT_ADDRESS")
+        .expect("SEPOLIA_ACCOUNT_ADDRESS must be set in environment");
     let provider = JsonRpcClient::new(HttpTransport::new(
         Url::parse("https://starknet-sepolia.public.blastapi.io/rpc/v0_7").unwrap(),
     ));
