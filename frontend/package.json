@@ -14,10 +14,12 @@
     "@tsparticles/engine": "^3.7.1",
     "@tsparticles/react": "^3.0.0",
     "next": "15.1.4",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-markdown": "^9.0.3",
     "react-tsparticles": "^2.12.2",
+    "@starknet-react/chains": "^3.1.2",
+    "@starknet-react/core": "^3.7.1",
     "tsparticles": "^3.7.1"
   },
   "devDependencies": {
