@@ -7,8 +7,8 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Starknet Agent",
-  description: "Your AI assistant for Starknet",
+  title: "Brother Yields",
+  description: "Your AI assistant for customized DeFi strategy Starknet",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
