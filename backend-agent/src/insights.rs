@@ -3,7 +3,7 @@ use tokio_postgres::NoTls;
 
 pub async fn get_insights_context() -> Result<(String, Vec<TwitterInsight>), anyhow::Error> {
     let db_config = format!(
-        "host={} user={} password={} dbname={} port={}",
+        "host={} user={} password={} dbname={} port={} sslmode=require",
         std::env::var("DB_HOST").expect("DB_HOST must be set"),
         std::env::var("DB_USER").expect("DB_USER must be set"),
         std::env::var("DB_PASSWORD").expect("DB_PASSWORD must be set"),
