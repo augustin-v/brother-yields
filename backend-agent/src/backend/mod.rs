@@ -97,7 +97,7 @@ impl<M: CompletionModel + 'static> Backend<M> {
 
         let cors = CorsLayer::new()
             .allow_origin(
-                "http://localhost:3000"
+                "https://brother-yields.vercel.app"
                     .parse::<header::HeaderValue>()
                     .unwrap(),
             )
@@ -114,13 +114,13 @@ impl<M: CompletionModel + 'static> Backend<M> {
             .layer(cors)
             .with_state(self.clone());
 
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:5050")
+        let listener = tokio::net::TcpListener::bind("0.0.0.0:8000")
             .await
             .expect("Listener failure");
-        info!("Listener started on 127.0.0.1:5050");
+        info!("Listener started on 0.0.0.0:8000");
 
         self.is_active.store(true, Ordering::SeqCst);
-        *self.listener_addr.write() = Some(Url::parse("http://127.0.0.1:5050/").unwrap());
+        *self.listener_addr.write() = Some(Url::parse("http://0.0.0.0:8000/").unwrap());
 
         info!(
             "Backend is active: {} {}",
