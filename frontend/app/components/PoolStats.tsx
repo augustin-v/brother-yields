@@ -32,11 +32,11 @@ const priceToNumber = (price: Price): number => {
 export default function PoolStats() {
   const [poolStats, setPoolStats] = useState<PoolStats | null>(null);
   const [showDegen, setShowDegen] = useState(false);
-
+  const API_URL = 'https://brother-yields.onrender.com';
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:5050/yields');
+        const response = await fetch(`${API_URL}/yields`);
         const data = await response.json();
         setPoolStats(data);
       } catch (error) {
