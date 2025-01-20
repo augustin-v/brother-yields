@@ -1,7 +1,11 @@
 use crate::types::TwitterInsight;
-use tokio_postgres::NoTls;
-
+use openssl::ssl::{SslConnector, SslMethod};
+use postgres_openssl::MakeTlsConnector;
 pub async fn get_insights_context() -> Result<(String, Vec<TwitterInsight>), anyhow::Error> {
+    let mut builder = SslConnector::builder(SslMethod::tls()).expect("unable to create sslconnector builder");
+    builder.set_verify(openssl::ssl::SslVerifyMode::NONE);
+    let connector = MakeTlsConnector::new(builder.build());
+
     let db_config = format!(
         "host={} user={} password={} dbname={} port={} sslmode=require",
         std::env::var("DB_HOST").expect("DB_HOST must be set"),
@@ -11,7 +15,7 @@ pub async fn get_insights_context() -> Result<(String, Vec<TwitterInsight>), any
         std::env::var("DB_PORT").expect("DB_PORT must be set"),
     );
 
-    let (client, connection) = tokio_postgres::connect(&db_config, NoTls)
+    let (client, connection) = tokio_postgres::connect(&db_config, connector)
         .await
         .expect("Failed to connect to database");
 
